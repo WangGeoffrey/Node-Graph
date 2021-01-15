@@ -3,7 +3,8 @@ import math
 
 pygame.init()
 WIDTH = 600
-WIN = pygame.display.set_mode((WIDTH+100, WIDTH))
+SIDE_BAR = 100
+WIN = pygame.display.set_mode((WIDTH+SIDE_BAR, WIDTH))
 pygame.display.set_caption('Node Graph')
 font = pygame.font.SysFont('Corbel',15)
 
@@ -77,15 +78,15 @@ class Edge:
         pygame.draw.line(WIN, WHITE, first, second)
 
 class Button:
-    def __init__(self, x_pos, y_pos, height, width, text):
+    def __init__(self, x_pos, y_pos, width, height, text):
         self.x_pos = x_pos
         self.y_pos = y_pos
-        self.height = height
         self.width = width
+        self.height = height
         self.color = WHITE
-        self.rect = pygame.Rect(x_pos, y_pos, height, width)
+        self.rect = pygame.Rect(x_pos, y_pos, width, height)
         self.text = font.render(text, True, BLACK)
-        self.text_rect = self.text.get_rect(center=(x_pos + height//2, y_pos + width//2))
+        self.text_rect = self.text.get_rect(center=(x_pos + width//2, y_pos + height//2))
 
     def get_rect(self):
         return self.rect
@@ -119,9 +120,9 @@ def main():
     WIN.fill(WHITE)
 
     buttons = []
-    buttons.append(Button(WIDTH+1, 0, 100, WIDTH//3, 'Add'))
-    buttons.append(Button(WIDTH+1, WIDTH//3, 100, WIDTH//3, 'Remove'))
-    buttons.append(Button(WIDTH+1, 2*(WIDTH//3), 100, WIDTH//3, 'Connect'))
+    buttons.append(Button(WIDTH+1, 0, SIDE_BAR, WIDTH//3, 'Add'))
+    buttons.append(Button(WIDTH+1, WIDTH//3, SIDE_BAR, WIDTH//3, 'Remove'))
+    buttons.append(Button(WIDTH+1, 2*(WIDTH//3), SIDE_BAR, WIDTH//3, 'Connect'))
     action = 0
 
     nodes = []
@@ -140,7 +141,11 @@ def main():
                 if WIDTH < pos[0]:
                     for button in buttons:
                         if button.get_rect().collidepoint(event.pos):
-                            action = buttons.index(button)+1
+                            temp = buttons.index(button)+1
+                            if temp == action:
+                                action = 0
+                            else:
+                                action = temp
                 elif move_node:
                     move_node = False
 
@@ -203,11 +208,8 @@ def main():
         for button in buttons:
             if button.get_rect().collidepoint(pos) or action == buttons.index(button)+1:
                 button.selected()
-                button.draw()
             else:
                 button.deselected()
-                button.draw()
-
-        pygame.display.update()
+            button.draw()
 
 main()
