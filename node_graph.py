@@ -233,7 +233,7 @@ def main():
                                     break
                     elif move_node:
                         new_pos = pos
-                        if not (SIZE*2 < pos[0] < WIDTH-SIZE*2 and SIZE*2 < pos[1] < WIDTH-SIZE*2):
+                        if not (SIZE*2 < pos[0] < WIDTH-SIZE*2 and SIZE*2 < pos[1] < WIDTH-SIZE*2): # Check if mouse position in border
                             new_x, new_y = pos
                             if SIZE*2 > pos[0]:
                                 new_x = SIZE*2
@@ -249,9 +249,9 @@ def main():
                             if in_range(node.get_pos(), pos, SIZE*3):
                                 if node != node_to_move:
                                     intersecting.add(node)
-                        if len(intersecting) != 0:
+                        if len(intersecting) != 0: # Check if mouse position in node(s)
                             positions = set()
-                            if len(intersecting) == 1:
+                            if len(intersecting) == 1: # Check if mouse position in one node
                                 temp = intersecting.pop()
                                 if temp.get_pos() == pos:
                                     new_pos = prev_pos
@@ -275,7 +275,7 @@ def main():
                                                 positions.add(temp2)
                                             if len(positions) == 0:
                                                 new_pos = prev_pos
-                            else:
+                            else: # Check if mouse position in multiple nodes
                                 while len(intersecting) > 0:
                                     temp = intersecting.pop()
                                     for node in intersecting:
