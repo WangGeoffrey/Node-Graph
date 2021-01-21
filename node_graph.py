@@ -117,7 +117,7 @@ def in_range(pos1, pos2, range):
     return math.sqrt((x1 - x2)**2 + (y1 - y2)**2) < range
 
 def valid_pos(nodes, pos, exclude):
-    if not (SIZE*2 < pos[0] < WIDTH-SIZE*2 and SIZE*2 < pos[1] < WIDTH-SIZE*2):
+    if not (SIZE*2 <= pos[0] <= WIDTH-SIZE*2 and SIZE*2 <= pos[1] <= WIDTH-SIZE*2):
         return False
     in_nodes = set()
     for node in nodes:
@@ -130,11 +130,9 @@ def valid_pos(nodes, pos, exclude):
 def get_intersections(node1, node2):
     x0, y0 = node1.get_pos()
     x1, y1 = node2.get_pos()
-    r = SIZE*3
-
     d=math.sqrt((x1-x0)**2 + (y1-y0)**2)
     a=d/2
-    h=math.sqrt(r**2-a**2)
+    h=math.sqrt((SIZE*3)**2-a**2)
     x2=x0+a*(x1-x0)/d   
     y2=y0+a*(y1-y0)/d   
     x3=x2+h*(y1-y0)/d     
@@ -233,7 +231,13 @@ def main():
                                     break
                     elif move_node:
                         new_pos = pos
-                        if not (SIZE*2 < pos[0] < WIDTH-SIZE*2 and SIZE*2 < pos[1] < WIDTH-SIZE*2): # Check if mouse position in border
+                        in_border = not (SIZE*2 < pos[0] < WIDTH-SIZE*2 and SIZE*2 < pos[1] < WIDTH-SIZE*2)
+                        intersecting = set()
+                        for node in nodes:
+                            if in_range(node.get_pos(), pos, SIZE*3):
+                                if node != node_to_move:
+                                    intersecting.add(node)
+                        if in_border and len(intersecting) == 0:
                             new_x, new_y = pos
                             if SIZE*2 > pos[0]:
                                 new_x = SIZE*2
@@ -244,14 +248,62 @@ def main():
                             elif pos[1] > WIDTH-SIZE*2:
                                 new_y = WIDTH-SIZE*2
                             new_pos = (new_x, new_y)
-                        intersecting = set()
-                        for node in nodes:
-                            if in_range(node.get_pos(), pos, SIZE*3):
-                                if node != node_to_move:
-                                    intersecting.add(node)
-                        if len(intersecting) != 0: # Check if mouse position in node(s)
+                            if not valid_pos(nodes, new_pos, {node_to_move}):
+                                new_pos = prev_pos
+                        elif len(intersecting) != 0:
                             positions = set()
-                            if len(intersecting) == 1: # Check if mouse position in one node
+                            if in_border:
+                                while len(intersecting) > 0:
+                                    temp = intersecting.pop()
+                                    new_x, new_y = pos
+                                    base1 = base2 = 0
+                                    x1, y1 = temp.get_pos()
+                                    if SIZE*2 >= pos[0]:
+                                        new_x = SIZE*2
+                                        base2 = math.sqrt((SIZE*3)**2 - (x1 - new_x)**2)
+                                    elif pos[0] >= WIDTH-SIZE*2:
+                                        new_x = WIDTH-SIZE*2
+                                        base2 = math.sqrt((SIZE*3)**2 - (x1 - new_x)**2)
+                                    elif SIZE*2 >= pos[1]:
+                                        new_y = SIZE*2
+                                        base1 = math.sqrt((SIZE*3)**2 - (y1 - new_y)**2)
+                                    elif pos[1] >= WIDTH-SIZE*2:
+                                        new_y = WIDTH-SIZE*2
+                                        base1 = math.sqrt((SIZE*3)**2 - (y1 - new_y)**2)
+                                    
+                                    if new_x == pos[0] and new_y == pos[1]:
+                                        positions.add(prev_pos)
+                                    elif new_x != pos[0] and new_y != pos[1]:
+                                        if not (base1 == 0 and base2 == 0):
+                                            point1 = (x1-base1, new_y)
+                                            point2 = (x1+base1, new_y)
+                                            point3 = (new_x, y1-base2)
+                                            point4 = (new_x, y1+base2)
+                                            if valid_pos(nodes, point1, {temp, node_to_move}):
+                                                positions.add(point1)
+                                            if valid_pos(nodes, point2, {temp, node_to_move}):
+                                                positions.add(point2)
+                                            if valid_pos(nodes, point3, {temp, node_to_move}):
+                                                positions.add(point3)
+                                            if valid_pos(nodes, point4, {temp, node_to_move}):
+                                                positions.add(point4)
+                                    elif new_x == pos[0]:
+                                        if base1 != 0:
+                                            point1 = (x1-base1, new_y)
+                                            point2 = (x1+base1, new_y)
+                                            if valid_pos(nodes, point1, {temp, node_to_move}):
+                                                positions.add(point1)
+                                            if valid_pos(nodes, point2, {temp, node_to_move}):
+                                                positions.add(point2)
+                                    elif new_y == pos[1]:
+                                        if base2 != 0:
+                                            point1 = (new_x, y1-base2)
+                                            point2 = (new_x, y1+base2)
+                                            if valid_pos(nodes, point1, {temp, node_to_move}):
+                                                positions.add(point1)
+                                            if valid_pos(nodes, point2, {temp, node_to_move}):
+                                                positions.add(point2)
+                            elif len(intersecting) == 1:
                                 temp = intersecting.pop()
                                 if temp.get_pos() == pos:
                                     new_pos = prev_pos
@@ -262,20 +314,21 @@ def main():
                                     exclude = {node_to_move, temp}
                                     if not valid_pos(nodes, new_pos, exclude):
                                         intersecting.clear()
-                                        for node in nodes:
-                                            if in_range(node.get_pos(), new_pos, SIZE*3):
-                                                if node != temp:
-                                                    intersecting.add(node)
-                                        for node in intersecting:
-                                            temp1, temp2 = get_intersections(temp, node)
-                                            exclude = {temp, node, node_to_move}
-                                            if valid_pos(nodes, temp1, exclude):
-                                                positions.add(temp1)
-                                            if valid_pos(nodes, temp2, exclude):
-                                                positions.add(temp2)
-                                            if len(positions) == 0:
-                                                new_pos = prev_pos
-                            else: # Check if mouse position in multiple nodes
+                                        if not (SIZE*2 < new_pos[0] < WIDTH-SIZE*2 and SIZE*2 < new_pos[1] < WIDTH-SIZE*2):
+                                            new_pos = prev_pos
+                                        else:
+                                            for node in nodes:
+                                                if in_range(node.get_pos(), new_pos, SIZE*3):
+                                                    if node != temp:
+                                                        temp1, temp2 = get_intersections(temp, node)
+                                                        exclude = {temp, node, node_to_move}
+                                                        if valid_pos(nodes, temp1, exclude):
+                                                            positions.add(temp1)
+                                                        if valid_pos(nodes, temp2, exclude):
+                                                            positions.add(temp2)
+                                                        if len(positions) == 0:
+                                                            new_pos = prev_pos
+                            else:
                                 while len(intersecting) > 0:
                                     temp = intersecting.pop()
                                     for node in intersecting:
