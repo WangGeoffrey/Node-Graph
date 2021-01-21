@@ -288,6 +288,8 @@ def main():
                                         if not valid_pos(nodes, p, exclude):
                                             remove.add(p)
                                     positions = positions.difference(remove)
+                                    if not bool(positions):
+                                        new_pos = prev_pos
                             elif len(intersecting) == 1:
                                 temp = intersecting.pop()
                                 x1, y1 = temp.get_pos()
@@ -307,6 +309,8 @@ def main():
                                                         positions.add(temp1)
                                                     if valid_pos(nodes, temp2, exclude):
                                                         positions.add(temp2)
+                                                    if not bool(positions):
+                                                        new_pos = prev_pos
                             else:
                                 while bool(intersecting):
                                     temp = intersecting.pop()
@@ -317,6 +321,8 @@ def main():
                                             positions.add(temp1)
                                         if valid_pos(nodes, temp2, exclude):
                                             positions.add(temp2)
+                                        if not bool(positions):
+                                            new_pos = prev_pos
                         if bool(positions):
                             if len(positions) == 1:
                                 new_pos = positions.pop()
@@ -332,9 +338,6 @@ def main():
                                     new_pos = prev_pos
                                 else:
                                     new_pos = closest_pos
-                        else:
-                            if bool(intersecting):
-                                new_pos = prev_pos
                         prev_pos = new_pos
                         node_to_move.move(new_pos)
                         for edge in node_to_move.get_edges():
