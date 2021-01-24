@@ -138,7 +138,7 @@ def closest_valid_pos(nodes, pos, node_to_move):
                 intersecting.add(node)
     if in_display and not bool(intersecting):
         return pos
-    elif not in_display:
+    elif not in_display and not bool(intersecting):
         if SIZE*2 > x:
             x = SIZE*2
         elif x > WIDTH-SIZE*2:
@@ -171,12 +171,23 @@ def closest_valid_pos(nodes, pos, node_to_move):
 
 def get_positions(nodes, pos, node_to_move, valid, invalid):
     intersecting = set()
-    in_display = SIZE*2 <= pos[0] <= WIDTH-SIZE*2 and SIZE*2 <= pos[1] <= WIDTH-SIZE*2
+    direction = None # (horizontal, vertical)
+    if not (SIZE*2 < pos[0] < WIDTH-SIZE*2 and SIZE*2 < pos[1] < WIDTH-SIZE*2):
+        a = b = 0
+        if SIZE*2 >= pos[0]:
+            a = -1
+        elif pos[0] >= WIDTH-SIZE*2:
+            a = 1
+        if SIZE*2 >= pos[1]:
+            b = -1
+        elif pos[1] >= WIDTH-SIZE*2:
+            b = 1
+        direction = (a, b)
     for node in nodes:
         if in_range(pos, node.get_pos(), SIZE*3):
             if node != node_to_move:
                 intersecting.add(node)
-    if in_display:
+    if not bool(direction):
         while bool(intersecting):
             temp = intersecting.pop()
             for node in intersecting:
@@ -203,31 +214,21 @@ def get_positions(nodes, pos, node_to_move, valid, invalid):
             x1, y1 = temp.get_pos()
             x, y = pos
             base1 = base2 = 0
-            if SIZE*2 >= x:
-                x = SIZE*2
-                base2 = math.sqrt((SIZE*3)**2 - (x1 - x)**2)
-            elif x >= WIDTH-SIZE*2:
-                x = WIDTH-SIZE*2
-                base2 = math.sqrt((SIZE*3)**2 - (x1 - x)**2)
-            elif SIZE*2 >= y:
-                y = SIZE*2
+            if direction[1] != 0:
+                y = WIDTH/2 + direction[1]*(WIDTH/2 - SIZE*2)
                 base1 = math.sqrt((SIZE*3)**2 - (y1 - y)**2)
-            elif y >= WIDTH-SIZE*2:
-                y = WIDTH-SIZE*2
-                base1 = math.sqrt((SIZE*3)**2 - (y1 - y)**2)
-            if x == pos[0] and y == pos[1]:
-                pass
-            elif x != pos[0] and y != pos[1]:
-                positions.add((x1-base1, y))
-                positions.add((x1+base1, y))
+            if direction[0] != 0:
+                x = WIDTH/2 + direction[0]*(WIDTH/2 - SIZE*2)
+                base2 = math.sqrt((SIZE*3)**2 - (x1 - x)**2)
+            if direction[0] != 0 and direction[1] != 0: # Corner
+                positions.add((x, y1-direction[1]*base2))
+                positions.add((x1-direction[0]*base1, y))
+            elif direction[0] != 0: # Horizontal
                 positions.add((x, y1-base2))
                 positions.add((x, y1+base2))
-            elif x == pos[0]:
+            elif direction[1] != 0: # Vertical
                 positions.add((x1-base1, y))
-                positions.add((x1+base1, y))
-            elif y == pos[1]:
-                positions.add((x, y1-base2))
-                positions.add((x, y1+base2))
+                positions.add((x1-base1, y))
             while bool(positions):
                 temp0 = positions.pop()
                 if temp0 in valid or temp0 in invalid:
