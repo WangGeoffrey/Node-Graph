@@ -8,14 +8,15 @@ WIN = pygame.display.set_mode((WIDTH+SIDE_BAR, WIDTH))
 pygame.display.set_caption('Node Graph')
 font = pygame.font.SysFont('Corbel', 15)
 
+    #Colors
 BLACK = (0, 0, 0)
 GREY = (128, 128, 128)
 LIGHTER = (200, 200, 200)
 WHITE = (255, 255, 255)
 
-SIZE = 20
+SIZE = 20   #Node radius
 
-class Node:
+class Node:     #Node object
     def __init__(self, pos):
         self.pos = pos
         self.color = GREY
@@ -49,40 +50,30 @@ class Node:
     def erase(self):
         pygame.draw.circle(WIN, WHITE, self.pos, SIZE)
 
-class Edge:
-    def __init__(self, first, second):
+class Edge:     #Edge object
+    def __init__(self, node1, node2):
         self.color = BLACK
-        self.connecting = {first, second}
-        self.position = {first.get_pos(), second.get_pos()}
+        self.connecting = {node1, node2}
+        self.start_pos = node1.get_pos()
+        self.end_pos = node2.get_pos()
 
     def get_connecting(self):
         return self.connecting
 
-    def get_ends(self):
-        return tuple(self.connecting)
-
-    def get_poss(self):
-        return tuple(self.position)
-
     def move(self):
         self.erase()
-        first, second = self.get_ends()
-        self.position = {first.get_pos(), second.get_pos()}
+        node1, node2 = self.connecting
+        self.start_pos = node1.get_pos()
+        self.end_pos = node2.get_pos()
     
     def draw(self):
-        first, second = self.get_poss()
-        pygame.draw.line(WIN, self.color, first, second)
+        pygame.draw.line(WIN, self.color, self.start_pos, self.end_pos)
 
     def erase(self):
-        first, second = self.get_poss()
-        pygame.draw.line(WIN, WHITE, first, second)
+        pygame.draw.line(WIN, WHITE, self.start_pos, self.end_pos)
 
-class Button:
+class Button:   #Button object
     def __init__(self, x_pos, y_pos, width, height, text):
-        self.x_pos = x_pos
-        self.y_pos = y_pos
-        self.width = width
-        self.height = height
         self.color = WHITE
         self.rect = pygame.Rect(x_pos, y_pos, width, height)
         self.text = font.render(text, True, BLACK)
@@ -120,14 +111,13 @@ def valid_pos(nodes, pos, exclude):
     if not (SIZE*2 <= pos[0] <= WIDTH-SIZE*2 and SIZE*2 <= pos[1] <= WIDTH-SIZE*2):
         return False
     for node in nodes:
-        if in_range(node.get_pos(), pos, SIZE*3):
+        if in_range(pos, node.get_pos(), SIZE*3):
             if not node in exclude:
                 return False
     return True
 
 def closest_valid_pos(nodes, pos, node_to_move):
     x, y = pos
-    new_pos = pos
     valid = set()
     invalid = set()
     intersecting = set()
@@ -136,83 +126,70 @@ def closest_valid_pos(nodes, pos, node_to_move):
         if in_range(pos, node.get_pos(), SIZE*3):
             if node != node_to_move:
                 intersecting.add(node)
-    if in_display and not bool(intersecting):
+    if in_display and not bool(intersecting): 
         return pos
     elif not in_display and not bool(intersecting):
+        a, b = x, y
         if SIZE*2 > x:
-            x = SIZE*2
+            a = SIZE*2
         elif x > WIDTH-SIZE*2:
-            x = WIDTH-SIZE*2
+            a = WIDTH-SIZE*2
         if SIZE*2 > y:
-            y = SIZE*2
+            b = SIZE*2
         elif y > WIDTH-SIZE*2:
-            y = WIDTH-SIZE*2
-        new_pos = (x, y)
-        if valid_pos(nodes, new_pos, {node_to_move}):
-            return new_pos
+            b = WIDTH-SIZE*2
+        pos = (a, b)
+        if valid_pos(nodes, pos, {node_to_move}):
+            return pos
     elif in_display and len(intersecting) == 1:
         node = intersecting.pop()
         if pos == node.get_pos():
             return None
         x1, y1 = node.get_pos()
         scale = 3*SIZE/math.sqrt((x - x1)**2 + (y - y1)**2)
-        new_pos = (x1+(x-x1)*scale, y1+(y-y1)*scale)
-        if valid_pos(nodes, new_pos, {node, node_to_move}):
-            return new_pos
-    valid, invalid = get_positions(nodes, new_pos, node_to_move, set(), set())
-    closest = WIDTH
-    closest_pos = None
+        pos = (x1+(x-x1)*scale, y1+(y-y1)*scale)
+        if valid_pos(nodes, pos, {node, node_to_move}):
+            return pos
+    valid, invalid = get_positions(nodes, pos, node_to_move, set(), set())
+    closest = (WIDTH, None)
     for p in valid:
-        temp = math.sqrt((p[0] - x)**2 + (p[1] - y)**2)
-        if closest > temp:
-            closest = temp
-            closest_pos = p
-    return closest_pos
+        dist = math.sqrt((p[0] - x)**2 + (p[1] - y)**2)
+        if closest[0] > dist:
+            closest = (dist, p)
+    return closest[1]
 
 def get_positions(nodes, pos, node_to_move, valid, invalid):
+    x, y = pos
     intersecting = set()
-    direction = None # (horizontal, vertical)
-    if not (SIZE*2 < pos[0] < WIDTH-SIZE*2 and SIZE*2 < pos[1] < WIDTH-SIZE*2):
+    direction = None #(horizontal, vertical)
+    if not (SIZE*2 < x < WIDTH-SIZE*2 and SIZE*2 < y < WIDTH-SIZE*2):
         a = b = 0
-        if SIZE*2 >= pos[0]:
+        if SIZE*2 >= x: #Left
             a = -1
-        elif pos[0] >= WIDTH-SIZE*2:
+        elif x >= WIDTH-SIZE*2: #Right
             a = 1
-        if SIZE*2 >= pos[1]:
+        if SIZE*2 >= y: #Up
             b = -1
-        elif pos[1] >= WIDTH-SIZE*2:
+        elif y >= WIDTH-SIZE*2: #Down
             b = 1
         direction = (a, b)
     for node in nodes:
-        if in_range(pos, node.get_pos(), SIZE*3):
+        if in_range(pos, node.get_pos(), SIZE*3+0.1): # +0.1 for positions calculated from nodes
             if node != node_to_move:
                 intersecting.add(node)
     if not bool(direction):
         while bool(intersecting):
-            temp = intersecting.pop()
-            for node in intersecting:
-                pos1, pos2 = get_intersections(temp, node)
-                if pos1 in valid or pos1 in invalid:
-                    pass
-                elif valid_pos(nodes, pos1, {node_to_move, temp, node}):
-                    valid.add(pos1)
-                else:
-                    invalid.add(pos1)
-                    valid, invalid = get_positions(nodes, pos1, node_to_move, valid, invalid)
-                if pos2 in valid or pos2 in invalid:
-                    pass
-                elif valid_pos(nodes, pos2, {node_to_move, temp, node}):
-                    valid.add(pos2)
-                else:
-                    invalid.add(pos2)
-                    valid, invalid = get_positions(nodes, pos2, node_to_move, valid, invalid)
+            node1 = intersecting.pop()
+            for node2 in intersecting:
+                pos1, pos2 = get_intersections(node1, node2)
+                valid, invalid = add_pos(nodes, pos1, node_to_move, {node_to_move, node1, node2}, valid, invalid)
+                valid, invalid = add_pos(nodes, pos2, node_to_move, {node_to_move, node1, node2}, valid, invalid)
         return valid, invalid
     else:
         positions = set()
         while bool(intersecting):
-            temp = intersecting.pop()
-            x1, y1 = temp.get_pos()
-            x, y = pos
+            node1 = intersecting.pop()
+            x1, y1 = node1.get_pos()
             base1 = base2 = 0
             if direction[1] != 0:
                 y = WIDTH/2 + direction[1]*(WIDTH/2 - SIZE*2)
@@ -220,41 +197,34 @@ def get_positions(nodes, pos, node_to_move, valid, invalid):
             if direction[0] != 0:
                 x = WIDTH/2 + direction[0]*(WIDTH/2 - SIZE*2)
                 base2 = math.sqrt((SIZE*3)**2 - (x1 - x)**2)
-            if direction[0] != 0 and direction[1] != 0: # Corner
+            if direction[0] != 0 and direction[1] != 0: #Corner
                 positions.add((x, y1-direction[1]*base2))
                 positions.add((x1-direction[0]*base1, y))
-            elif direction[0] != 0: # Horizontal
+            elif direction[0] != 0: #Horizontal
                 positions.add((x, y1-base2))
                 positions.add((x, y1+base2))
-            elif direction[1] != 0: # Vertical
+            elif direction[1] != 0: #Vertical
                 positions.add((x1-base1, y))
-                positions.add((x1-base1, y))
+                positions.add((x1+base1, y))
             while bool(positions):
-                temp0 = positions.pop()
-                if temp0 in valid or temp0 in invalid:
-                    pass
-                elif valid_pos(nodes, temp0, {temp, node_to_move}):
-                    valid.add(temp0)
-                else:
-                    invalid.add(temp0)
-                    valid, invalid = get_positions(nodes, temp0, node_to_move, valid, invalid)
-            for node in intersecting:
-                pos1, pos2 = get_intersections(temp, node)
-                if pos1 in valid or pos1 in invalid:
-                    pass
-                elif valid_pos(nodes, pos1, {node_to_move, temp, node}):
-                    valid.add(pos1)
-                else:
-                    invalid.add(pos1)
-                    valid, invalid = get_positions(nodes, pos1, node_to_move, valid, invalid)
-                if pos2 in valid or pos2 in invalid:
-                    pass
-                elif valid_pos(nodes, pos2, {node_to_move, temp, node}):
-                    valid.add(pos2)
-                else:
-                    invalid.add(pos2)
-                    valid, invalid = get_positions(nodes, pos2, node_to_move, valid, invalid)
+                temp = positions.pop()
+                valid, invalid = add_pos(nodes, temp, node_to_move, {node1, node_to_move}, valid, invalid)
+            for node2 in intersecting:
+                pos1, pos2 = get_intersections(node1, node2)
+                valid, invalid = add_pos(nodes, pos1, node_to_move, {node_to_move, node1, node2}, valid, invalid)
+                valid, invalid = add_pos(nodes, pos2, node_to_move, {node_to_move, node1, node2}, valid, invalid)
         return valid, invalid
+
+def add_pos(nodes, pos, node_to_move, exclude, valid, invalid):
+    if pos in valid or pos in invalid:
+        pass
+    else:
+        if valid_pos(nodes, pos, exclude):
+            valid.add(pos)
+        else:
+            invalid.add(pos)
+            valid, invalid = get_positions(nodes, pos, node_to_move, valid, invalid)
+    return valid, invalid
 
 def get_intersections(node1, node2):
     x0, y0 = node1.get_pos()
@@ -303,33 +273,32 @@ def main():
                 elif move_node:
                     move_node = False
             if pygame.mouse.get_pressed()[0]:
-                if not WIDTH < x:
+                if x <= WIDTH:
                     if action == 1: #Add node
                         if SIZE*2 < x < WIDTH-SIZE*2 and SIZE*2 < y < WIDTH-SIZE*2:
-                            outside = False
+                            valid = True
                             for node in nodes:
-                                if in_range(node.get_pos(), pos, SIZE*3):
-                                    outside = True
+                                if in_range(pos, node.get_pos(), SIZE*3):
+                                    valid = False
                                     break
-                            if not outside:
+                            if valid:
                                 nodes.append(Node(pos))
                                 action = 0
-                    elif action == 2: #Remove node
+                    elif action == 2:   #Remove node
                         for node in nodes:
-                            if in_range(node.get_pos(), pos, SIZE):
+                            if in_range(pos, node.get_pos(), SIZE):
                                 node.erase()
-                                nodes.remove(node)
                                 for edge in node.get_edges():
                                     edge.erase()
+                                nodes.remove(node)
                                 edges = edges.difference(node.get_edges())
+                                for node in nodes:
+                                    node.update_edges(edges)
                                 action = 0
                                 break
-                        if action != 2:
-                            for node in nodes:
-                                node.update_edges(edges)
-                    elif action == 3: #Connect nodes
+                    elif action == 3:   #Connect nodes
                         for node in nodes:
-                            if in_range(node.get_pos(), pos, SIZE):
+                            if in_range(pos, node.get_pos(), SIZE):
                                 if toggle_connect:
                                     if node != node_to_connect:
                                         edge = Edge(node, node_to_connect)
@@ -343,8 +312,8 @@ def main():
                                             node.connect(edge)
                                             node_to_connect.connect(edge)
                                             edges.add(edge)
-                                            action = 0
                                             toggle_connect = False
+                                            action = 0
                                             break
                                     else:
                                         node_to_connect.select()
@@ -355,16 +324,16 @@ def main():
                                     toggle_connect = True
                                     break
                     elif move_node:
-                        new_pos = closest_valid_pos(nodes, pos, node_to_move)
-                        if not bool(new_pos):
-                            new_pos = prev_pos
-                        node_to_move.move(new_pos)
-                        prev_pos = new_pos
+                        pos = closest_valid_pos(nodes, pos, node_to_move)
+                        if not bool(pos):
+                            pos = prev_pos
+                        node_to_move.move(pos)
+                        prev_pos = pos
                         for edge in node_to_move.get_edges():
                             edge.move()
                     else:
                         for node in nodes:
-                            if in_range(node.get_pos(), pos, SIZE):
+                            if in_range(pos, node.get_pos(), SIZE):
                                 move_node = True
                                 node_to_move = node
                                 break
