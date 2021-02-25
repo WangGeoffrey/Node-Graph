@@ -8,15 +8,14 @@ WIN = pygame.display.set_mode((WIDTH+SIDE_BAR, WIDTH))
 pygame.display.set_caption('Node Graph')
 font = pygame.font.SysFont('Corbel', 15)
 
-    #Colors
 BLACK = (0, 0, 0)
 GREY = (128, 128, 128)
 LIGHTER = (200, 200, 200)
 WHITE = (255, 255, 255)
 
-SIZE = 20   #Node radius
+SIZE = 20 #Node radius
 
-class Node:     #Node object
+class Node:
     def __init__(self, pos):
         self.pos = pos
         self.color = GREY
@@ -27,7 +26,7 @@ class Node:     #Node object
 
     def select(self):
         if self.color == GREY:
-            self.color = LIGHTER
+            self.color = LIGHTGREY
         else:
             self.color = GREY
 
@@ -50,7 +49,7 @@ class Node:     #Node object
     def erase(self):
         pygame.draw.circle(WIN, WHITE, self.pos, SIZE)
 
-class Edge:     #Edge object
+class Edge:
     def __init__(self, node1, node2):
         self.color = BLACK
         self.connecting = {node1, node2}
@@ -72,7 +71,7 @@ class Edge:     #Edge object
     def erase(self):
         pygame.draw.line(WIN, WHITE, self.start_pos, self.end_pos)
 
-class Button:   #Button object
+class Button:
     def __init__(self, x_pos, y_pos, width, height, text):
         self.color = WHITE
         self.rect = pygame.Rect(x_pos, y_pos, width, height)
@@ -116,7 +115,7 @@ def valid_pos(nodes, pos, exclude):
                 return False
     return True
 
-def closest_valid_pos(nodes, pos, node_to_move):
+def closest_valid_pos(nodes, pos, node_to_move): #helper function of get_positions()
     x, y = pos
     valid = set()
     invalid = set()
@@ -158,10 +157,10 @@ def closest_valid_pos(nodes, pos, node_to_move):
             closest = (dist, p)
     return closest[1]
 
-def get_positions(nodes, pos, node_to_move, valid, invalid):
+def get_positions(nodes, pos, node_to_move, valid, invalid): #recursive function
     x, y = pos
     intersecting = set()
-    direction = None #(horizontal, vertical)
+    direction = None
     if not (SIZE*2 < x < WIDTH-SIZE*2 and SIZE*2 < y < WIDTH-SIZE*2):
         a = b = 0
         if SIZE*2 >= x: #Left
@@ -172,9 +171,9 @@ def get_positions(nodes, pos, node_to_move, valid, invalid):
             b = -1
         elif y >= WIDTH-SIZE*2: #Down
             b = 1
-        direction = (a, b)
+        direction = (a, b) #(horizontal, vertical)
     for node in nodes:
-        if in_range(pos, node.get_pos(), SIZE*3+0.1): # +0.1 for positions calculated from nodes
+        if in_range(pos, node.get_pos(), SIZE*3+0.1): #+0.1 for positions calculated from nodes
             if node != node_to_move:
                 intersecting.add(node)
     if not bool(direction):
@@ -284,7 +283,7 @@ def main():
                             if valid:
                                 nodes.append(Node(pos))
                                 action = 0
-                    elif action == 2:   #Remove node
+                    elif action == 2: #Remove node
                         for node in nodes:
                             if in_range(pos, node.get_pos(), SIZE):
                                 node.erase()
@@ -296,7 +295,7 @@ def main():
                                     node.update_edges(edges)
                                 action = 0
                                 break
-                    elif action == 3:   #Connect nodes
+                    elif action == 3: #Connect nodes
                         for node in nodes:
                             if in_range(pos, node.get_pos(), SIZE):
                                 if toggle_connect:
