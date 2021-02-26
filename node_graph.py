@@ -112,11 +112,27 @@ class Button2(Button):
     def __init__(self, x_pos, y_pos, width, height, text, alt_text):
         super(Button2, self).__init__(x_pos, y_pos, width, height, text)
         self.alt_text = font.render(alt_text, True, BLACK)
+        self.alt_text_rect = self.alt_text.get_rect(center=(x_pos + width//2, y_pos + height//2))
+        self.toggle = False
 
     def click(self):
-        temp = self.text
-        self.text = self.alt_text
-        self.alt_text = temp
+        self.toggle = not self.toggle
+
+    def is_selected(self):
+        return self.toggle
+
+    def hovered(self):
+        self.color = LIGHTGREY
+
+    def clear(self):
+        self.color = WHITE
+
+    def draw(self):
+        pygame.draw.rect(WIN, self.color, self.rect)
+        if not self.toggle:
+            WIN.blit(self.text, self.text_rect)
+        else:
+            WIN.blit(self.alt_text, self.alt_text_rect)
 
 def draw_graph(nodes, edges):
     for edge in edges:
@@ -279,97 +295,119 @@ def main():
     prev_pos = (-1, -1)
     move_node = False
     toggle_connect = False
+    prev_button = None
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             x, y = pos = pygame.mouse.get_pos()
-            if event.type == pygame.MOUSEBUTTONUP:
-                if WIDTH < x:
-                    for button in buttons:
-                        button.deselect()
-                        if button.get_rect().collidepoint(event.pos):
-                            button.click()
-                    if toggle_connect:
-                        toggle_connect = False
-                        node_to_connect.select()
-                elif move_node:
-                    move_node = False
-            if pygame.mouse.get_pressed()[0]:
-                if x <= WIDTH:
-                    if buttons[0].is_selected(): #Add node
-                        if SIZE*2 < x < WIDTH-SIZE*2 and SIZE*2 < y < WIDTH-SIZE*2:
-                            valid = True
-                            for node in nodes:
-                                if in_range(pos, node.get_pos(), SIZE*3):
-                                    valid = False
-                                    break
-                            if valid:
-                                nodes.append(Node(pos))
-                                buttons[0].deselect()
-                    elif buttons[1].is_selected(): #Remove node
-                        for node in nodes:
-                            if in_range(pos, node.get_pos(), SIZE):
-                                node.erase()
-                                for edge in node.get_edges():
-                                    edge.erase()
-                                nodes.remove(node)
-                                edges = edges.difference(node.get_edges())
-                                for node in nodes:
-                                    node.update_edges(edges)
-                                buttons[1].deselect()
+            if buttons[3].is_selected():
+                if event.type == pygame.MOUSEBUTTONUP:
+                    if buttons[3].get_rect().collidepoint(event.pos):
+                        buttons[3].click()
+            else:
+                if event.type == pygame.MOUSEBUTTONUP:
+                    if WIDTH < x:
+                        for button in buttons:
+                            if button.get_rect().collidepoint(event.pos):
+                                button.click()
+                                if button != prev_button:
+                                    try:
+                                        prev_button.deselect()
+                                    except:
+                                        pass
+                                prev_button = button
                                 break
-                    elif buttons[2].is_selected(): #Connect nodes
-                        for node in nodes:
-                            if in_range(pos, node.get_pos(), SIZE):
-                                if toggle_connect:
-                                    if node != node_to_connect:
-                                        edge = Edge(node, node_to_connect)
-                                        valid = True
-                                        for existing_edge in node.get_edges():
-                                            if existing_edge.get_connecting() == edge.get_connecting():
-                                                valid = False
-                                                break
-                                        if valid:
-                                            node_to_connect.select()
-                                            node.connect(edge)
-                                            node_to_connect.connect(edge)
-                                            edges.add(edge)
-                                            toggle_connect = False
-                                            buttons[2].deselect()
-                                            break
-                                    else:
-                                        node_to_connect.select()
-                                        toggle_connect = False
-                                else:
-                                    node_to_connect = node
-                                    node_to_connect.select()
-                                    toggle_connect = True
-                                    break
+                        if toggle_connect:
+                            toggle_connect = False
+                            node_to_connect.select()
                     elif move_node:
-                        pos = closest_valid_pos(nodes, pos, node_to_move)
-                        if not bool(pos):
-                            pos = prev_pos
-                        node_to_move.move(pos)
-                        prev_pos = pos
-                        for edge in node_to_move.get_edges():
-                            edge.move()
-                    else:
-                        for node in nodes:
-                            if in_range(pos, node.get_pos(), SIZE):
-                                move_node = True
-                                node_to_move = node
-                                break
-        draw_graph(nodes, edges)
-        for button in buttons:
-            button.clear()
-            if button.get_rect().collidepoint(pos):
-                button.hovered()
-            button.draw()
-        pygame.draw.line(WIN, BLACK, (WIDTH, 0), (WIDTH, WIDTH))
-        for i in range(5):
-            pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//4), (WIDTH+SIDE_BAR, i*WIDTH//4))
+                        move_node = False
+                if pygame.mouse.get_pressed()[0]:
+                    if x <= WIDTH:
+                        if buttons[0].is_selected(): #Add node
+                            if SIZE*2 < x < WIDTH-SIZE*2 and SIZE*2 < y < WIDTH-SIZE*2:
+                                valid = True
+                                for node in nodes:
+                                    if in_range(pos, node.get_pos(), SIZE*3):
+                                        valid = False
+                                        break
+                                if valid:
+                                    nodes.append(Node(pos))
+                                    buttons[0].deselect()
+                        elif buttons[1].is_selected(): #Remove node
+                            for node in nodes:
+                                if in_range(pos, node.get_pos(), SIZE):
+                                    node.erase()
+                                    for edge in node.get_edges():
+                                        edge.erase()
+                                    nodes.remove(node)
+                                    edges = edges.difference(node.get_edges())
+                                    for node in nodes:
+                                        node.update_edges(edges)
+                                    buttons[1].deselect()
+                                    break
+                        elif buttons[2].is_selected(): #Connect nodes
+                            for node in nodes:
+                                if in_range(pos, node.get_pos(), SIZE):
+                                    if toggle_connect:
+                                        if node != node_to_connect:
+                                            edge = Edge(node, node_to_connect)
+                                            valid = True
+                                            for existing_edge in node.get_edges():
+                                                if existing_edge.get_connecting() == edge.get_connecting():
+                                                    valid = False
+                                                    break
+                                            if valid:
+                                                node_to_connect.select()
+                                                node.connect(edge)
+                                                node_to_connect.connect(edge)
+                                                edges.add(edge)
+                                                toggle_connect = False
+                                                buttons[2].deselect()
+                                                break
+                                        else:
+                                            node_to_connect.select()
+                                            toggle_connect = False
+                                    else:
+                                        node_to_connect = node
+                                        node_to_connect.select()
+                                        toggle_connect = True
+                                        break
+                        elif move_node:
+                            pos = closest_valid_pos(nodes, pos, node_to_move)
+                            if not bool(pos):
+                                pos = prev_pos
+                            node_to_move.move(pos)
+                            prev_pos = pos
+                            for edge in node_to_move.get_edges():
+                                edge.move()
+                        else:
+                            for node in nodes:
+                                if in_range(pos, node.get_pos(), SIZE):
+                                    move_node = True
+                                    node_to_move = node
+                                    break
+        if buttons[3].is_selected():
+            rect = pygame.Rect(WIDTH, 0, WIDTH+SIDE_BAR, 3*WIDTH//4)
+            pygame.draw.rect(WIN, WHITE, rect)
+            buttons[3].clear()
+            if buttons[3].get_rect().collidepoint(pos):
+                buttons[3].hovered()
+            buttons[3].draw()
+            pygame.draw.line(WIN, BLACK, (WIDTH, 3*WIDTH//4), (WIDTH+SIDE_BAR, 3*WIDTH//4))
+            pygame.display.update()
+        else:
+            draw_graph(nodes, edges)
+            for button in buttons:
+                button.clear()
+                if button.get_rect().collidepoint(pos):
+                    button.hovered()
+                button.draw()
+            pygame.draw.line(WIN, BLACK, (WIDTH, 0), (WIDTH, WIDTH))
+            for i in range(5):
+                pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//4), (WIDTH+SIDE_BAR, i*WIDTH//4))
     pygame.quit()
 
 main()
