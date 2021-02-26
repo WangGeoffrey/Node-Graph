@@ -10,7 +10,7 @@ font = pygame.font.SysFont('Corbel', 15)
 
 BLACK = (0, 0, 0)
 GREY = (128, 128, 128)
-LIGHTER = (200, 200, 200)
+LIGHTGREY = (192, 192, 192)
 WHITE = (255, 255, 255)
 
 SIZE = 20 #Node radius
@@ -81,15 +81,42 @@ class Button:
     def get_rect(self):
         return self.rect
 
+    def click(self):
+        if self.is_selected():
+            self.deselect()
+        else:
+            self.select()
+
+    def select(self):
+        self.color = GREY
+
+    def deselect(self):
+        self.color = WHITE
+
+    def is_selected(self):
+        return self.color == GREY
+
+    def hovered(self):
+        if not self.is_selected():
+            self.color = LIGHTGREY
+
+    def clear(self):
+        if not self.is_selected():
+            self.color = WHITE
+
     def draw(self):
         pygame.draw.rect(WIN, self.color, self.rect)
         WIN.blit(self.text, self.text_rect)
 
-    def selected(self):
-        self.color = GREY
+class Button2(Button):
+    def __init__(self, x_pos, y_pos, width, height, text, alt_text):
+        super(Button2, self).__init__(x_pos, y_pos, width, height, text)
+        self.alt_text = font.render(alt_text, True, BLACK)
 
-    def deselected(self):
-        self.color = WHITE
+    def click(self):
+        temp = self.text
+        self.text = self.alt_text
+        self.alt_text = temp
 
 def draw_graph(nodes, edges):
     for edge in edges:
@@ -241,11 +268,12 @@ def get_intersections(node1, node2):
 
 def main():
     WIN.fill(WHITE)
-    buttons = []
-    buttons.append(Button(WIDTH+1, 0, SIDE_BAR, WIDTH//3, 'Add'))
-    buttons.append(Button(WIDTH+1, WIDTH//3, SIDE_BAR, WIDTH//3, 'Remove'))
-    buttons.append(Button(WIDTH+1, 2*(WIDTH//3), SIDE_BAR, WIDTH//3, 'Connect'))
-    action = 0
+    buttons = [
+        Button(WIDTH+1, 0, SIDE_BAR, WIDTH//4, 'Add'),
+        Button(WIDTH+1, WIDTH//4, SIDE_BAR, WIDTH//4, 'Remove'),
+        Button(WIDTH+1, WIDTH//2, SIDE_BAR, WIDTH//4, 'Connect'),
+        Button2(WIDTH+1, 3*WIDTH//4, SIDE_BAR, WIDTH//4, 'View', 'Return')
+    ]
     nodes = []
     edges = set()
     prev_pos = (-1, -1)
@@ -260,20 +288,17 @@ def main():
             if event.type == pygame.MOUSEBUTTONUP:
                 if WIDTH < x:
                     for button in buttons:
+                        button.deselect()
                         if button.get_rect().collidepoint(event.pos):
-                            temp = buttons.index(button)+1
-                            if temp == action:
-                                action = 0
-                            else:
-                                action = temp
-                                if toggle_connect:
-                                    toggle_connect = False
-                                    node_to_connect.select()
+                            button.click()
+                    if toggle_connect:
+                        toggle_connect = False
+                        node_to_connect.select()
                 elif move_node:
                     move_node = False
             if pygame.mouse.get_pressed()[0]:
                 if x <= WIDTH:
-                    if action == 1: #Add node
+                    if buttons[0].is_selected(): #Add node
                         if SIZE*2 < x < WIDTH-SIZE*2 and SIZE*2 < y < WIDTH-SIZE*2:
                             valid = True
                             for node in nodes:
@@ -282,8 +307,8 @@ def main():
                                     break
                             if valid:
                                 nodes.append(Node(pos))
-                                action = 0
-                    elif action == 2: #Remove node
+                                buttons[0].deselect()
+                    elif buttons[1].is_selected(): #Remove node
                         for node in nodes:
                             if in_range(pos, node.get_pos(), SIZE):
                                 node.erase()
@@ -293,9 +318,9 @@ def main():
                                 edges = edges.difference(node.get_edges())
                                 for node in nodes:
                                     node.update_edges(edges)
-                                action = 0
+                                buttons[1].deselect()
                                 break
-                    elif action == 3: #Connect nodes
+                    elif buttons[2].is_selected(): #Connect nodes
                         for node in nodes:
                             if in_range(pos, node.get_pos(), SIZE):
                                 if toggle_connect:
@@ -312,7 +337,7 @@ def main():
                                             node_to_connect.connect(edge)
                                             edges.add(edge)
                                             toggle_connect = False
-                                            action = 0
+                                            buttons[2].deselect()
                                             break
                                     else:
                                         node_to_connect.select()
@@ -338,14 +363,13 @@ def main():
                                 break
         draw_graph(nodes, edges)
         for button in buttons:
-            if button.get_rect().collidepoint(pos) or action == buttons.index(button)+1:
-                button.selected()
-            else:
-                button.deselected()
+            button.clear()
+            if button.get_rect().collidepoint(pos):
+                button.hovered()
             button.draw()
         pygame.draw.line(WIN, BLACK, (WIDTH, 0), (WIDTH, WIDTH))
-        for i in range(4):
-            pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//3), (WIDTH+SIDE_BAR, i*WIDTH//3))
+        for i in range(5):
+            pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//4), (WIDTH+SIDE_BAR, i*WIDTH//4))
     pygame.quit()
 
 main()
