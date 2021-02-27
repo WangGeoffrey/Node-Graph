@@ -53,23 +53,24 @@ class Edge:
     def __init__(self, node1, node2):
         self.color = BLACK
         self.connecting = {node1, node2}
-        self.start_pos = node1.get_pos()
-        self.end_pos = node2.get_pos()
+        self.edge = tuple(node.get_pos() for node in self.connecting)
 
     def get_connecting(self):
         return self.connecting
 
+    def is_equal(self, edge):
+        return self.connecting == edge.get_connecting()
+
     def move(self):
         self.erase()
         node1, node2 = self.connecting
-        self.start_pos = node1.get_pos()
-        self.end_pos = node2.get_pos()
+        self.edge = tuple(node.get_pos() for node in self.connecting)
     
     def draw(self):
-        pygame.draw.line(WIN, self.color, self.start_pos, self.end_pos)
+        pygame.draw.line(WIN, self.color, self.edge[0], self.edge[1])
 
     def erase(self):
-        pygame.draw.line(WIN, WHITE, self.start_pos, self.end_pos)
+        pygame.draw.line(WIN, WHITE, self.edge[0], self.edge[1])
 
 class Button:
     def __init__(self, x_pos, y_pos, width, height, text):
@@ -356,7 +357,7 @@ def main():
                                             edge = Edge(node, node_to_connect)
                                             valid = True
                                             for existing_edge in node.get_edges():
-                                                if existing_edge.get_connecting() == edge.get_connecting():
+                                                if existing_edge.is_equal(edge):
                                                     valid = False
                                                     break
                                             if valid:
