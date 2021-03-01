@@ -72,6 +72,38 @@ class Edge:
     def erase(self):
         pygame.draw.line(WIN, WHITE, self.edge[0], self.edge[1])
 
+class Graph:
+    def __init__(self):
+        self.matrix = [] #Incidence matrix
+        self.nodes = []
+        self.edges = []
+
+    def add_node(self, node):
+        self.nodes.append(node)
+        row = []
+        if bool(self.edges):
+            row = list(0 for element in self.edges)
+        self.matrix.append(row)
+
+    def remove_node(self, node):
+        self.matrix.pop(self.nodes.index(node))
+        self.nodes.remove(node)
+
+    def add_edge(self, edge):
+        self.edges.append(edge)
+        if bool(self.nodes):
+            for index in len(self.nodes):
+                if nodes[index] in edge.get_connecting():
+                    self.matrix[index].append(1)
+                else:
+                    self.matrix[index].append(0)
+
+    def remove_edge(self, edge):
+        col_index = self.edges.index(edge)
+        for row in matrix:
+            row.pop(col_index)
+        self.edges.remove(edge)
+
 class Button:
     def __init__(self, x_pos, y_pos, width, height, text):
         self.color = WHITE
