@@ -80,23 +80,23 @@ class Graph:
 
     def add_node(self, node):
         self.nodes.append(node)
-        row = []
-        if bool(self.edges):
-            row = list(0 for element in self.edges)
+        row = list(0 for element in self.edges)
         self.matrix.append(row)
 
     def remove_node(self, node):
-        self.matrix.pop(self.nodes.index(node))
+        connected_edges = []
+        row = self.matrix.pop(self.nodes.index(node))
+        for col in range(len(row)):
+            if row[col] == 1:
+                connected_edges.append(self.edges[col])
+        for edge in connected_edges:
+            self.remove_edge(edge)
         self.nodes.remove(node)
 
     def add_edge(self, edge):
         self.edges.append(edge)
-        if bool(self.nodes):
-            for index in len(self.nodes):
-                if nodes[index] in edge.get_connecting():
-                    self.matrix[index].append(1)
-                else:
-                    self.matrix[index].append(0)
+        for index in range(len(self.nodes)):
+            self.matrix[index].append(int(nodes[index] in edge.get_connecting()))
 
     def remove_edge(self, edge):
         col_index = self.edges.index(edge)
