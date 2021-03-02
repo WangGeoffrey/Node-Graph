@@ -78,31 +78,46 @@ class Graph:
         self.nodes = []
         self.edges = []
 
+    def get_nodes(self):
+        return self.nodes
+
+    def get_edges(self):
+        return self.edges
+
     def add_node(self, node):
         self.nodes.append(node)
         row = list(0 for element in self.edges)
         self.matrix.append(row)
 
     def remove_node(self, node):
-        connected_edges = []
+        offset = 0
         row = self.matrix.pop(self.nodes.index(node))
         for col in range(len(row)):
             if row[col] == 1:
-                connected_edges.append(self.edges[col])
-        for edge in connected_edges:
-            self.remove_edge(edge)
+                self.remove_edge(self.edges[col-offset])
+                offset += 1
         self.nodes.remove(node)
 
     def add_edge(self, edge):
         self.edges.append(edge)
         for index in range(len(self.nodes)):
-            self.matrix[index].append(int(nodes[index] in edge.get_connecting()))
+            self.matrix[index].append(int(self.nodes[index] in edge.get_connecting()))
 
     def remove_edge(self, edge):
         col_index = self.edges.index(edge)
-        for row in matrix:
+        for row in self.matrix:
             row.pop(col_index)
         self.edges.remove(edge)
+
+    def draw(self):
+        for edge in self.edges:
+            edge.draw()
+        for node in self.nodes:
+            node.draw()
+            text = font.render(str(self.nodes.index(node)+1) , True , BLACK)
+            text_rect = text.get_rect(center=node.get_pos())
+            WIN.blit(text, text_rect)
+        pygame.display.update()
 
 class Button:
     def __init__(self, x_pos, y_pos, width, height, text):
@@ -166,16 +181,6 @@ class Button2(Button):
             WIN.blit(self.text, self.text_rect)
         else:
             WIN.blit(self.alt_text, self.alt_text_rect)
-
-def draw_graph(nodes, edges):
-    for edge in edges:
-        edge.draw()
-    for node in nodes:
-        node.draw()
-        text = font.render(str(nodes.index(node)+1) , True , BLACK)
-        text_rect = text.get_rect(center=node.get_pos())
-        WIN.blit(text, text_rect)
-    pygame.display.update()
 
 def in_range(pos1, pos2, range):
     x1, y1 = pos1
@@ -323,8 +328,7 @@ def main():
         Button(WIDTH+1, WIDTH//2, SIDE_BAR, WIDTH//4, 'Connect'),
         Button2(WIDTH+1, 3*WIDTH//4, SIDE_BAR, WIDTH//4, 'View', 'Return')
     ]
-    nodes = []
-    edges = set()
+    graph = Graph()
     prev_pos = (-1, -1)
     move_node = False
     toggle_connect = False
@@ -362,27 +366,26 @@ def main():
                         if buttons[0].is_selected(): #Add node
                             if SIZE*2 < x < WIDTH-SIZE*2 and SIZE*2 < y < WIDTH-SIZE*2:
                                 valid = True
-                                for node in nodes:
+                                for node in graph.get_nodes():
                                     if in_range(pos, node.get_pos(), SIZE*3):
                                         valid = False
                                         break
                                 if valid:
-                                    nodes.append(Node(pos))
+                                    graph.add_node(Node(pos))
                                     buttons[0].deselect()
                         elif buttons[1].is_selected(): #Remove node
-                            for node in nodes:
+                            for node in graph.get_nodes():
                                 if in_range(pos, node.get_pos(), SIZE):
                                     node.erase()
                                     for edge in node.get_edges():
                                         edge.erase()
-                                    nodes.remove(node)
-                                    edges = edges.difference(node.get_edges())
-                                    for node in nodes:
-                                        node.update_edges(edges)
+                                    graph.remove_node(node)
+                                    for node in graph.get_nodes():
+                                        node.update_edges(set(graph.get_edges()))
                                     buttons[1].deselect()
                                     break
                         elif buttons[2].is_selected(): #Connect nodes
-                            for node in nodes:
+                            for node in graph.get_nodes():
                                 if in_range(pos, node.get_pos(), SIZE):
                                     if toggle_connect:
                                         if node != node_to_connect:
@@ -396,7 +399,7 @@ def main():
                                                 node_to_connect.select()
                                                 node.connect(edge)
                                                 node_to_connect.connect(edge)
-                                                edges.add(edge)
+                                                graph.add_edge(edge)
                                                 toggle_connect = False
                                                 buttons[2].deselect()
                                                 break
@@ -409,7 +412,7 @@ def main():
                                         toggle_connect = True
                                         break
                         elif move_node:
-                            pos = closest_valid_pos(nodes, pos, node_to_move)
+                            pos = closest_valid_pos(graph.get_nodes(), pos, node_to_move)
                             if not bool(pos):
                                 pos = prev_pos
                             node_to_move.move(pos)
@@ -417,7 +420,7 @@ def main():
                             for edge in node_to_move.get_edges():
                                 edge.move()
                         else:
-                            for node in nodes:
+                            for node in graph.get_nodes():
                                 if in_range(pos, node.get_pos(), SIZE):
                                     move_node = True
                                     node_to_move = node
@@ -432,7 +435,7 @@ def main():
             pygame.draw.line(WIN, BLACK, (WIDTH, 3*WIDTH//4), (WIDTH+SIDE_BAR, 3*WIDTH//4))
             pygame.display.update()
         else:
-            draw_graph(nodes, edges)
+            graph.draw()
             for button in buttons:
                 button.clear()
                 if button.get_rect().collidepoint(pos):
