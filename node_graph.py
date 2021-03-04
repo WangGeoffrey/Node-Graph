@@ -52,8 +52,19 @@ class Node:
 class Edge:
     def __init__(self, node1, node2):
         self.color = BLACK
+        self.distance(node1, node2)
         self.connecting = {node1, node2}
         self.edge = tuple(node.get_pos() for node in self.connecting)
+
+    def distance(self, node1, node2):
+        x1, y1 = node1.get_pos()
+        x2, y2 = node2.get_pos()
+        self.weight = int(math.sqrt((x1-x2)**2+(y1-y2)**2))
+        self.text = font.render(str(self.weight), True, BLACK)
+        self.text_rect = self.text.get_rect(center=(min(x1, x2)+abs(x1-x2)/2, min(y1, y2)+abs(y1-y2)/2))
+
+    def get_weight(self):
+        return self.weight
 
     def get_connecting(self):
         return self.connecting
@@ -64,19 +75,24 @@ class Edge:
     def move(self):
         self.erase()
         node1, node2 = self.connecting
+        self.distance(node1, node2)
         self.edge = tuple(node.get_pos() for node in self.connecting)
     
-    def draw(self):
+    def draw(self, show):
         pygame.draw.line(WIN, self.color, self.edge[0], self.edge[1])
+        if show:
+            WIN.blit(self.text, self.text_rect)
 
     def erase(self):
         pygame.draw.line(WIN, WHITE, self.edge[0], self.edge[1])
+        pygame.draw.rect(WIN, WHITE, self.text_rect)
 
 class Graph:
     def __init__(self):
         self.matrix = [] #Incidence matrix
         self.nodes = []
         self.edges = []
+        self.show_weights = True
 
     def get_nodes(self):
         return self.nodes
@@ -109,9 +125,18 @@ class Graph:
             row.pop(col_index)
         self.edges.remove(edge)
 
+    def toggle_show(self):
+        if self.show_weights:
+            self.show_weights = False
+            for edge in self.edges:
+                edge.erase()
+            self.draw()
+        else:
+            self.show_weights = True
+
     def draw(self):
         for edge in self.edges:
-            edge.draw()
+            edge.draw(self.show_weights)
         for node in self.nodes:
             node.draw()
             text = font.render(str(self.nodes.index(node)+1) , True , BLACK)
@@ -323,10 +348,11 @@ def get_intersections(node1, node2):
 def main():
     WIN.fill(WHITE)
     buttons = [
-        Button(WIDTH+1, 0, SIDE_BAR, WIDTH//4, 'Add'),
-        Button(WIDTH+1, WIDTH//4, SIDE_BAR, WIDTH//4, 'Remove'),
-        Button(WIDTH+1, WIDTH//2, SIDE_BAR, WIDTH//4, 'Connect'),
-        Button2(WIDTH+1, 3*WIDTH//4, SIDE_BAR, WIDTH//4, 'View', 'Return')
+        Button(WIDTH+1, 0, SIDE_BAR, WIDTH//5, 'Add'),
+        Button(WIDTH+1, WIDTH//5, SIDE_BAR, WIDTH//5, 'Remove'),
+        Button(WIDTH+1, 2*WIDTH//5, SIDE_BAR, WIDTH//5, 'Connect'),
+        Button2(WIDTH+1, 3*WIDTH//5, SIDE_BAR, WIDTH//5, 'Hide', 'Show'),
+        Button2(WIDTH+1, 4*WIDTH//5, SIDE_BAR, WIDTH//5, 'View', 'Return')
     ]
     graph = Graph()
     prev_pos = (-1, -1)
@@ -339,15 +365,17 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
             x, y = pos = pygame.mouse.get_pos()
-            if buttons[3].is_selected():
+            if buttons[4].is_selected():
                 if event.type == pygame.MOUSEBUTTONUP:
-                    if buttons[3].get_rect().collidepoint(event.pos):
-                        buttons[3].click()
+                    if buttons[4].get_rect().collidepoint(event.pos):
+                        buttons[4].click()
             else:
                 if event.type == pygame.MOUSEBUTTONUP:
                     if WIDTH < x:
                         for button in buttons:
                             if button.get_rect().collidepoint(event.pos):
+                                if buttons.index(button) == 3:
+                                    graph.toggle_show()
                                 button.click()
                                 if button != prev_button:
                                     try:
@@ -425,14 +453,14 @@ def main():
                                     move_node = True
                                     node_to_move = node
                                     break
-        if buttons[3].is_selected():
-            rect = pygame.Rect(WIDTH, 0, WIDTH+SIDE_BAR, 3*WIDTH//4)
+        if buttons[4].is_selected():
+            rect = pygame.Rect(WIDTH, 0, WIDTH+SIDE_BAR, 4*WIDTH//5)
             pygame.draw.rect(WIN, WHITE, rect)
-            buttons[3].clear()
-            if buttons[3].get_rect().collidepoint(pos):
-                buttons[3].hovered()
-            buttons[3].draw()
-            pygame.draw.line(WIN, BLACK, (WIDTH, 3*WIDTH//4), (WIDTH+SIDE_BAR, 3*WIDTH//4))
+            buttons[4].clear()
+            if buttons[4].get_rect().collidepoint(pos):
+                buttons[4].hovered()
+            buttons[4].draw()
+            pygame.draw.line(WIN, BLACK, (WIDTH, 4*WIDTH//5), (WIDTH+SIDE_BAR, 4*WIDTH//5))
             pygame.display.update()
         else:
             graph.draw()
@@ -442,8 +470,8 @@ def main():
                     button.hovered()
                 button.draw()
             pygame.draw.line(WIN, BLACK, (WIDTH, 0), (WIDTH, WIDTH))
-            for i in range(5):
-                pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//4), (WIDTH+SIDE_BAR, i*WIDTH//4))
+            for i in range(6):
+                pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//5), (WIDTH+SIDE_BAR, i*WIDTH//5))
     pygame.quit()
 
 main()
