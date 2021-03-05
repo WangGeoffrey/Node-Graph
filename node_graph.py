@@ -21,6 +21,16 @@ class Node:
         self.color = GREY
         self.edges = set()
 
+    def get_connected(self):
+        result = set()
+        for edge in self.edges:
+            node1, node2 = edge.get_connecting()
+            if node1 != self:
+                result.add(node1)
+            else:
+                result.add(node2)
+        return result
+
     def get_pos(self):
         return self.pos
 
@@ -134,6 +144,10 @@ class Graph:
         else:
             self.show_weights = True
 
+    def is_connectd_graph(self):
+        connecting = connected(self.nodes[0], {self.nodes[0]})
+        return connecting == set(self.nodes)
+
     def draw(self):
         for edge in self.edges:
             edge.draw(self.show_weights)
@@ -206,6 +220,13 @@ class Button2(Button):
             WIN.blit(self.text, self.text_rect)
         else:
             WIN.blit(self.alt_text, self.alt_text_rect)
+
+def connected(current, connecting):
+    for node in current.get_connected():
+        if not node in connecting:
+            connecting.add(node)
+            connecting = connected(node, connecting)
+    return connecting
 
 def in_range(pos1, pos2, range):
     x1, y1 = pos1
