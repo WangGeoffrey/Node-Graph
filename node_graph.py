@@ -73,6 +73,9 @@ class Edge:
         self.text = font.render(str(self.weight), True, BLACK)
         self.text_rect = self.text.get_rect(center=(min(x1, x2)+abs(x1-x2)/2, min(y1, y2)+abs(y1-y2)/2))
 
+    def set_color(self, color):
+        self.color = color
+
     def get_weight(self):
         return self.weight
 
@@ -147,6 +150,28 @@ class Graph:
     def is_connectd_graph(self):
         connecting = connected(self.nodes[0], {self.nodes[0]})
         return connecting == set(self.nodes)
+
+    def MST(self): #Minimum Spanning Tree
+        mst = set()
+        visited = set()
+        edges = self.edges.copy()
+        while len(mst) < len(self.nodes)-1:
+            min = edges[0]
+            for edge in edges:
+                if edge.get_weight() < min.get_weight():
+                    min = edge
+            edges.remove(min)
+            if not min.get_connecting().issubset(visited):
+                mst.add(min)
+                visited = visited.union(min.get_connecting())
+        for edge in mst:
+            edge.set_color(BLACK)
+        for edge in set(self.edges).difference(mst):
+            edge.set_color(LIGHTGREY)
+
+    def reset_edges(self):
+        for edge in self.edges:
+            edge.set_color(BLACK)
 
     def draw(self):
         for edge in self.edges:
