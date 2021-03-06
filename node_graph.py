@@ -151,6 +151,22 @@ class Graph:
         connecting = connected(self.nodes[0], {self.nodes[0]})
         return connecting == set(self.nodes)
 
+    def has_cycle(self, nodes, edges):
+        if len(nodes) < 3:
+            return False
+        for node in nodes:
+            incident = 0
+            for edge in edges:
+                incident += self.matrix[self.nodes.index(node)][self.edges.index(edge)]
+            if incident < 2:
+                break
+        else:
+            return True
+        for node in nodes:
+            if self.has_cycle(nodes.difference({node}), set(edge for edge in edges if node not in edge.get_connecting())):
+                return True
+        return False
+
     def MST(self): #Minimum Spanning Tree
         mst = set()
         visited = set()
@@ -161,7 +177,7 @@ class Graph:
                 if edge.get_weight() < min.get_weight():
                     min = edge
             edges.remove(min)
-            if not min.get_connecting().issubset(visited):
+            if not (min.get_connecting().issubset(visited) and self.has_cycle(visited, mst.union({min}))):
                 mst.add(min)
                 visited = visited.union(min.get_connecting())
         for edge in mst:
