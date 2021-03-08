@@ -416,6 +416,11 @@ def main():
         Button2(WIDTH+1, 3*WIDTH//5, SIDE_BAR, WIDTH//5, 'Hide', 'Show'),
         Button2(WIDTH+1, 4*WIDTH//5, SIDE_BAR, WIDTH//5, 'View', 'Return')
     ]
+    buttons2 = [
+        Button(WIDTH+1, 2*WIDTH//5, SIDE_BAR, WIDTH//5, 'MST'),
+        buttons[3],
+        buttons[4]
+    ]
     graph = Graph()
     prev_pos = (-1, -1)
     move_node = False
@@ -429,8 +434,14 @@ def main():
             x, y = pos = pygame.mouse.get_pos()
             if buttons[4].is_selected():
                 if event.type == pygame.MOUSEBUTTONUP:
-                    if buttons[4].get_rect().collidepoint(event.pos):
-                        buttons[4].click()
+                    for button in buttons2:
+                        if button.get_rect().collidepoint(event.pos):
+                            button.click()
+                            if buttons2.index(button) == 2:
+                                graph.reset_edges()
+                            elif buttons2.index(button) == 0:
+                                if graph.is_connectd_graph():
+                                    graph.MST()
             else:
                 if event.type == pygame.MOUSEBUTTONUP:
                     if WIDTH < x:
@@ -516,14 +527,17 @@ def main():
                                     node_to_move = node
                                     break
         if buttons[4].is_selected():
-            rect = pygame.Rect(WIDTH, 0, WIDTH+SIDE_BAR, 4*WIDTH//5)
+            graph.draw()
+            rect = pygame.Rect(WIDTH, 0, WIDTH+SIDE_BAR, 2*WIDTH//5)
             pygame.draw.rect(WIN, WHITE, rect)
-            buttons[4].clear()
-            if buttons[4].get_rect().collidepoint(pos):
-                buttons[4].hovered()
-            buttons[4].draw()
-            pygame.draw.line(WIN, BLACK, (WIDTH, 4*WIDTH//5), (WIDTH+SIDE_BAR, 4*WIDTH//5))
-            pygame.display.update()
+            for button in buttons2:
+                button.clear()
+                if button.get_rect().collidepoint(pos):
+                    button.hovered()
+                button.draw()
+            pygame.draw.line(WIN, BLACK, (WIDTH, 3*WIDTH//5), (WIDTH, WIDTH))
+            for i in range(2, 6):
+                pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//5), (WIDTH+SIDE_BAR, i*WIDTH//5))
         else:
             graph.draw()
             for button in buttons:
