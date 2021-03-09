@@ -262,6 +262,17 @@ class Button2(Button):
         else:
             WIN.blit(self.alt_text, self.alt_text_rect)
 
+class Button3(Button):
+    def __init__(self, x_pos, y_pos, width, height, text, function):
+        super(Button3, self).__init__(x_pos, y_pos, width, height, text)
+        self.execute = function
+
+    def click(self):
+        self.color = GREY
+        self.draw()
+        self.color = WHITE
+        return self.execute()
+
 def connected(current, connecting):
     for node in current.get_connected():
         if not node in connecting:
@@ -417,7 +428,7 @@ def main():
         Button2(WIDTH+1, 4*WIDTH//5, SIDE_BAR, WIDTH//5, 'View', 'Return')
     ]
     buttons2 = [
-        Button(WIDTH+1, 2*WIDTH//5, SIDE_BAR, WIDTH//5, 'MST'),
+        Button3(WIDTH+1, 2*WIDTH//5, SIDE_BAR, WIDTH//5, 'MST', lambda: graph.MST()),
         buttons[3],
         buttons[4]
     ]
@@ -439,9 +450,6 @@ def main():
                             button.click()
                             if buttons2.index(button) == 2:
                                 graph.reset_edges()
-                            elif buttons2.index(button) == 0:
-                                if graph.is_connectd_graph():
-                                    graph.MST()
             else:
                 if event.type == pygame.MOUSEBUTTONUP:
                     if WIDTH < x:
