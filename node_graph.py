@@ -237,8 +237,19 @@ class Button:
         WIN.blit(self.text, self.text_rect)
 
 class Button2(Button):
-    def __init__(self, x_pos, y_pos, width, height, text, alt_text):
+    def __init__(self, x_pos, y_pos, width, height, text, function):
         super(Button2, self).__init__(x_pos, y_pos, width, height, text)
+        self.execute = function
+
+    def click(self):
+        self.color = GREY
+        self.draw()
+        self.color = WHITE
+        return self.execute()
+
+class Button3(Button):
+    def __init__(self, x_pos, y_pos, width, height, text, alt_text):
+        super(Button3, self).__init__(x_pos, y_pos, width, height, text)
         self.alt_text = font.render(alt_text, True, BLACK)
         self.alt_text_rect = self.alt_text.get_rect(center=(x_pos + width//2, y_pos + height//2))
         self.toggle = False
@@ -262,9 +273,9 @@ class Button2(Button):
         else:
             WIN.blit(self.alt_text, self.alt_text_rect)
 
-class Button3(Button):
-    def __init__(self, x_pos, y_pos, width, height, text, function):
-        super(Button3, self).__init__(x_pos, y_pos, width, height, text)
+class Button4(Button3):
+    def __init__(self, x_pos, y_pos, width, height, text, alt_text, function):
+        super(Button4, self).__init__(x_pos, y_pos, width, height, text, alt_text)
         self.execute = function
 
     def click(self):
@@ -424,11 +435,11 @@ def main():
         Button(WIDTH+1, 0, SIDE_BAR, WIDTH//5, 'Add'),
         Button(WIDTH+1, WIDTH//5, SIDE_BAR, WIDTH//5, 'Remove'),
         Button(WIDTH+1, 2*WIDTH//5, SIDE_BAR, WIDTH//5, 'Connect'),
-        Button2(WIDTH+1, 3*WIDTH//5, SIDE_BAR, WIDTH//5, 'Hide', 'Show'),
-        Button2(WIDTH+1, 4*WIDTH//5, SIDE_BAR, WIDTH//5, 'View', 'Return')
+        Button4(WIDTH+1, 3*WIDTH//5, SIDE_BAR, WIDTH//5, 'Hide', 'Show', lambda: graph.toggle_show()),
+        Button3(WIDTH+1, 4*WIDTH//5, SIDE_BAR, WIDTH//5, 'View', 'Return')
     ]
     buttons2 = [
-        Button3(WIDTH+1, 2*WIDTH//5, SIDE_BAR, WIDTH//5, 'MST', lambda: graph.MST()),
+        Button2(WIDTH+1, 2*WIDTH//5, SIDE_BAR, WIDTH//5, 'MST', lambda: graph.MST()),
         buttons[3],
         buttons[4]
     ]
@@ -455,8 +466,6 @@ def main():
                     if WIDTH < x:
                         for button in buttons:
                             if button.get_rect().collidepoint(event.pos):
-                                if buttons.index(button) == 3:
-                                    graph.toggle_show()
                                 button.click()
                                 if button != prev_button:
                                     try:
