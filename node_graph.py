@@ -168,6 +168,8 @@ class Graph:
         return False
 
     def MST(self): #Minimum Spanning Tree
+        if not self.is_connectd_graph():
+            return False
         mst = set()
         visited = set()
         edges = self.edges.copy()
@@ -279,6 +281,7 @@ class Button4(Button3):
         self.execute = function
 
     def click(self):
+        self.toggle = not self.toggle
         self.color = GREY
         self.draw()
         self.color = WHITE
@@ -490,7 +493,6 @@ def main():
                                         break
                                 if valid:
                                     graph.add_node(Node(pos))
-                                    buttons[0].deselect()
                         elif buttons[1].is_selected(): #Remove node
                             for node in graph.get_nodes():
                                 if in_range(pos, node.get_pos(), SIZE):
@@ -500,7 +502,6 @@ def main():
                                     graph.remove_node(node)
                                     for node in graph.get_nodes():
                                         node.update_edges(set(graph.get_edges()))
-                                    buttons[1].deselect()
                                     break
                         elif buttons[2].is_selected(): #Connect nodes
                             for node in graph.get_nodes():
@@ -519,7 +520,6 @@ def main():
                                                 node_to_connect.connect(edge)
                                                 graph.add_edge(edge)
                                                 toggle_connect = False
-                                                buttons[2].deselect()
                                                 break
                                         else:
                                             node_to_connect.select()
