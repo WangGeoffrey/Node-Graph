@@ -113,6 +113,12 @@ class Graph:
     def get_edges(self):
         return self.edges
 
+    def get_edge(self, node_pair):
+        for edge in self.edges:
+            if edge.get_connecting() == node_pair:
+                return edge
+        return None
+
     def add_node(self, node):
         self.nodes.append(node)
         row = list(0 for element in self.edges)
@@ -186,6 +192,42 @@ class Graph:
             edge.set_color(BLACK)
         for edge in set(self.edges).difference(mst):
             edge.set_color(LIGHTGREY)
+
+    def max_matching(self):
+        matching = set()
+        exposed = set(self.nodes)
+        while len(exposed) > 1:
+            current = exposed.pop()
+            path = self.augmenting_path(current, matching, exposed, set(), set(), {current: True})
+            matching = matching.union(path)
+            exposed = set(self.nodes)
+            for edge in matching:
+                exposed = exposed.difference(edge.get_connecting())
+        for edge in matching:
+            edge.set_color(BLACK)
+        for edge in set(self.edges).difference(matching):
+            edge.set_color(LIGHTGREY)
+
+    def augmenting_path(self, current, matching, exposed, considered, path, label):
+        if label[current]:
+            for node in current.get_connected():
+                if node in exposed:
+                    path.add(self.get_edge({current, node}))
+                    return path
+                else:
+                    label[node] = False
+                    next = node
+                    considered.add(self.get_edge({current, node}))
+                    path.add(self.get_edge({current, node}))
+            else:
+                return matching
+        else:
+            for edge in matching:
+                if current in edge.get_connecting():
+                    next = tuple(edge.get_connecting())[(edge.index(current)+1)%2]
+                    label[next] = True
+                    path.add(edge)
+        return self.augmenting_path(next, matching, exposed, considered, path, label)
 
     def reset_edges(self):
         for edge in self.edges:
