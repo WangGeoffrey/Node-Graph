@@ -196,10 +196,16 @@ class Graph:
     def max_matching(self):
         matching = set()
         exposed = set(self.nodes)
+        path = None
         while len(exposed) > 1:
-            current = exposed.pop()
-            path = self.augmenting_path(current, matching, exposed, set(), set(), {current: True})
-            matching = matching.union(path)
+            for node in exposed:
+                path = self.augmenting_path(node, matching, exposed, set(), set(), {node: True})
+                if bool(path):
+                    break
+            else:
+                break
+            alternating_path = path.difference(matching)
+            matching = matching.difference(path).union(alternating_path)
             exposed = set(self.nodes)
             for edge in matching:
                 exposed = exposed.difference(edge.get_connecting())
@@ -209,25 +215,21 @@ class Graph:
             edge.set_color(LIGHTGREY)
 
     def augmenting_path(self, current, matching, exposed, considered, path, label):
-        if label[current]:
-            for node in current.get_connected():
+        for node in current.get_connected():
+            edge = self.get_edge({current, node})
+            if edge not in considered and node not in label:
                 if node in exposed:
-                    path.add(self.get_edge({current, node}))
-                    return path
-                else:
-                    label[node] = False
-                    next = node
-                    considered.add(self.get_edge({current, node}))
-                    path.add(self.get_edge({current, node}))
-            else:
-                return matching
-        else:
-            for edge in matching:
-                if current in edge.get_connecting():
-                    next = tuple(edge.get_connecting())[(edge.index(current)+1)%2]
-                    label[next] = True
-                    path.add(edge)
-        return self.augmenting_path(next, matching, exposed, considered, path, label)
+                    if label[current]:
+                        path.add(edge)
+                        return path
+                    else:
+                        return None
+                elif label[current] or edge in matching:
+                    label[node] = not label[current]
+                    result = self.augmenting_path(node, matching, exposed, considered.union({edge}), path.union({edge}), label)
+                    if bool(result):
+                        return result
+        return None
 
     def reset_edges(self):
         for edge in self.edges:
@@ -484,6 +486,7 @@ def main():
         Button3(WIDTH+1, 4*WIDTH//5, SIDE_BAR, WIDTH//5, 'View', 'Return')
     ]
     buttons2 = [
+        Button2(WIDTH+1, WIDTH//5, SIDE_BAR, WIDTH//5, 'Max Matching', lambda: graph.max_matching()),
         Button2(WIDTH+1, 2*WIDTH//5, SIDE_BAR, WIDTH//5, 'MST', lambda: graph.MST()),
         buttons[3],
         buttons[4]
@@ -504,7 +507,7 @@ def main():
                     for button in buttons2:
                         if button.get_rect().collidepoint(event.pos):
                             button.click()
-                            if buttons2.index(button) == 2:
+                            if buttons2.index(button) == len(buttons2)-1:
                                 graph.reset_edges()
             else:
                 if event.type == pygame.MOUSEBUTTONUP:
@@ -587,7 +590,7 @@ def main():
                                     break
         if buttons[4].is_selected():
             graph.draw()
-            rect = pygame.Rect(WIDTH, 0, WIDTH+SIDE_BAR, 2*WIDTH//5)
+            rect = pygame.Rect(WIDTH, 0, WIDTH+SIDE_BAR, WIDTH//5)
             pygame.draw.rect(WIN, WHITE, rect)
             for button in buttons2:
                 button.clear()
@@ -595,7 +598,7 @@ def main():
                     button.hovered()
                 button.draw()
             pygame.draw.line(WIN, BLACK, (WIDTH, 3*WIDTH//5), (WIDTH, WIDTH))
-            for i in range(2, 6):
+            for i in range(1, 6):
                 pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//5), (WIDTH+SIDE_BAR, i*WIDTH//5))
         else:
             graph.draw()
