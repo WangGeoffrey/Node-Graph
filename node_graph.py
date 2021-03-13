@@ -231,6 +231,29 @@ class Graph:
                         return result
         return None
 
+    def hamiltonian_cycle(self):
+        start = self.nodes[0]
+        cycle = self.h_cycle(start, start, set(self.nodes), {start}, set())
+        if bool(cycle):
+            for edge in cycle:
+                edge.set_color(BLACK)
+            for edge in set(self.edges).difference(cycle):
+                edge.set_color(LIGHTGREY)
+        else:
+            for edge in self.edges:
+                edge.set_color(LIGHTGREY)
+
+    def h_cycle(self, start, current, nodes, visited, cycle):
+        if len(cycle) == len(nodes)-1 and start in current.get_connected() and len(cycle) > 1:
+            return cycle.union({self.get_edge({current, start})})
+        else:
+            for node in current.get_connected():
+                if not node in visited:
+                    temp = self.h_cycle(start, node, nodes, visited.union({node}), cycle.union({self.get_edge({current, node})}))
+                    if bool(temp):
+                        return temp
+        return None
+
     def reset_edges(self):
         for edge in self.edges:
             edge.set_color(BLACK)
@@ -486,6 +509,7 @@ def main():
         Button3(WIDTH+1, 4*WIDTH//5, SIDE_BAR, WIDTH//5, 'View', 'Return')
     ]
     buttons2 = [
+        Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//5, 'Hamilton Cycle', lambda: graph.hamiltonian_cycle()),
         Button2(WIDTH+1, WIDTH//5, SIDE_BAR, WIDTH//5, 'Max Matching', lambda: graph.max_matching()),
         Button2(WIDTH+1, 2*WIDTH//5, SIDE_BAR, WIDTH//5, 'MST', lambda: graph.MST()),
         buttons[3],
@@ -590,15 +614,13 @@ def main():
                                     break
         if buttons[4].is_selected():
             graph.draw()
-            rect = pygame.Rect(WIDTH, 0, WIDTH+SIDE_BAR, WIDTH//5)
-            pygame.draw.rect(WIN, WHITE, rect)
             for button in buttons2:
                 button.clear()
                 if button.get_rect().collidepoint(pos):
                     button.hovered()
                 button.draw()
             pygame.draw.line(WIN, BLACK, (WIDTH, 3*WIDTH//5), (WIDTH, WIDTH))
-            for i in range(1, 6):
+            for i in range(6):
                 pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//5), (WIDTH+SIDE_BAR, i*WIDTH//5))
         else:
             graph.draw()
