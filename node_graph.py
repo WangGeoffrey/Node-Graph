@@ -174,7 +174,7 @@ class Graph:
         return False
 
     def MST(self): #Minimum Spanning Tree
-        if not self.is_connectd_graph():
+        if not (bool(self.nodes) and self.is_connectd_graph()):
             return False
         mst = set()
         visited = set()
@@ -188,10 +188,9 @@ class Graph:
             if not (min.get_connecting().issubset(visited) and self.has_cycle(visited, mst.union({min}))):
                 mst.add(min)
                 visited = visited.union(min.get_connecting())
+        self.deselect_edges()
         for edge in mst:
             edge.set_color(BLACK)
-        for edge in set(self.edges).difference(mst):
-            edge.set_color(LIGHTGREY)
 
     def max_matching(self):
         matching = set()
@@ -209,10 +208,9 @@ class Graph:
             exposed = set(self.nodes)
             for edge in matching:
                 exposed = exposed.difference(edge.get_connecting())
+        self.deselect_edges()
         for edge in matching:
             edge.set_color(BLACK)
-        for edge in set(self.edges).difference(matching):
-            edge.set_color(LIGHTGREY)
 
     def augmenting_path(self, current, matching, exposed, considered, path, label):
         for node in current.get_connected():
@@ -232,16 +230,14 @@ class Graph:
         return None
 
     def hamiltonian_cycle(self):
+        if not bool(self.nodes):
+            return False
         start = self.nodes[0]
         cycle = self.h_cycle(start, start, set(self.nodes), {start}, set())
+        self.deselect_edges()
         if bool(cycle):
             for edge in cycle:
                 edge.set_color(BLACK)
-            for edge in set(self.edges).difference(cycle):
-                edge.set_color(LIGHTGREY)
-        else:
-            for edge in self.edges:
-                edge.set_color(LIGHTGREY)
 
     def h_cycle(self, start, current, nodes, visited, cycle):
         if len(cycle) == len(nodes)-1 and start in current.get_connected() and len(cycle) > 1:
@@ -253,6 +249,10 @@ class Graph:
                     if bool(temp):
                         return temp
         return None
+
+    def deselect_edges(self):
+        for edge in self.edges:
+            edge.set_color(LIGHTGREY)
 
     def reset_edges(self):
         for edge in self.edges:
