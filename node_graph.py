@@ -174,25 +174,33 @@ class Graph:
         return False
 
     def MST(self): #Minimum Spanning Tree
+        self.deselect_edges()
         if not (bool(self.nodes) and self.is_connectd_graph()):
             return False
         mst = set()
-        visited = set()
+        trees = []
         edges = self.edges.copy()
+        edges.sort(key=lambda x: x.get_weight())
         while len(mst) < len(self.nodes)-1:
-            min = edges[0]
-            for edge in edges:
-                if edge.get_weight() < min.get_weight():
-                    min = edge
-            edges.remove(min)
-            if not (min.get_connecting().issubset(visited) and self.has_cycle(visited, mst.union({min}))):
+            min = edges.pop(0)
+            linked = min.get_connecting()
+            branch_of = []
+            for tree in trees:
+                if linked.issubset(tree):
+                    break
+                elif bool(linked.intersection(tree)):
+                    linked = linked.union(tree)
+                    branch_of.append(tree)
+            else:
+                for tree in branch_of:
+                    trees.remove(tree)
+                trees.append(linked)
                 mst.add(min)
-                visited = visited.union(min.get_connecting())
-        self.deselect_edges()
         for edge in mst:
             edge.set_color(BLACK)
 
     def max_matching(self):
+        self.deselect_edges()
         matching = set()
         exposed = set(self.nodes)
         path = None
@@ -208,7 +216,6 @@ class Graph:
             exposed = set(self.nodes)
             for edge in matching:
                 exposed = exposed.difference(edge.get_connecting())
-        self.deselect_edges()
         for edge in matching:
             edge.set_color(BLACK)
 
@@ -230,11 +237,11 @@ class Graph:
         return None
 
     def hamiltonian_cycle(self):
+        self.deselect_edges()
         if not bool(self.nodes):
             return False
         start = self.nodes[0]
         cycle = self.h_cycle(start, start, set(self.nodes), {start}, set())
-        self.deselect_edges()
         if bool(cycle):
             for edge in cycle:
                 edge.set_color(BLACK)
