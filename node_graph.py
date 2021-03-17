@@ -184,20 +184,28 @@ class Graph:
         while len(mst) < len(self.nodes)-1:
             min = edges.pop(0)
             linked = min.get_connecting()
-            branch_of = []
-            for tree in trees:
+            index = 0
+            while index < len(trees):
+                tree = trees[index]
                 if linked.issubset(tree):
                     break
                 elif bool(linked.intersection(tree)):
                     linked = linked.union(tree)
-                    branch_of.append(tree)
+                    trees.pop(index)
+                else:
+                    index += 1
             else:
-                for tree in branch_of:
-                    trees.remove(tree)
                 trees.append(linked)
                 mst.add(min)
         for edge in mst:
             edge.set_color(BLACK)
+
+    def min_cover(self):
+        exposed = self.max_matching()
+        for node in exposed:
+            for edge in node.get_edges():
+                edge.set_color(BLACK)
+                break
 
     def max_matching(self):
         self.deselect_edges()
@@ -218,6 +226,7 @@ class Graph:
                 exposed = exposed.difference(edge.get_connecting())
         for edge in matching:
             edge.set_color(BLACK)
+        return exposed
 
     def augmenting_path(self, current, matching, exposed, considered, path, label):
         for node in current.get_connected():
