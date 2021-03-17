@@ -73,6 +73,9 @@ class Edge:
         self.text = font.render(str(self.weight), True, BLACK)
         self.text_rect = self.text.get_rect(center=(min(x1, x2)+abs(x1-x2)/2, min(y1, y2)+abs(y1-y2)/2))
 
+    def get_text_rect(self):
+        return self.text_rect
+
     def set_color(self, color):
         self.color = color
 
@@ -578,7 +581,7 @@ def main():
                                         break
                                 if valid:
                                     graph.add_node(Node(pos))
-                        elif buttons[1].is_selected(): #Remove node
+                        elif buttons[1].is_selected(): #Remove
                             for node in graph.get_nodes():
                                 if in_range(pos, node.get_pos(), SIZE):
                                     node.erase()
@@ -588,6 +591,14 @@ def main():
                                     for node in graph.get_nodes():
                                         node.update_edges(set(graph.get_edges()))
                                     break
+                            else:
+                                for edge in graph.get_edges():
+                                    if edge.get_text_rect().collidepoint(pos):
+                                        graph.remove_edge(edge)
+                                        for node in edge.get_connecting():
+                                            node.update_edges(set(graph.get_edges()))
+                                        edge.erase()
+                                        break
                         elif buttons[2].is_selected(): #Connect nodes
                             for node in graph.get_nodes():
                                 if in_range(pos, node.get_pos(), SIZE):
