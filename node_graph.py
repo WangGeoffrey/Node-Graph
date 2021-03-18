@@ -43,6 +43,9 @@ class Node:
     def get_edges(self):
         return self.edges
 
+    def set_color(self, color):
+        self.color = color
+
     def move(self, pos):
         self.erase()
         self.pos = pos
@@ -538,7 +541,7 @@ def main():
     prev_pos = (-1, -1)
     move_node = False
     toggle_connect = False
-    prev_button = None
+    prev_button = buttons[0]
     running = True
     while running:
         for event in pygame.event.get():
@@ -559,10 +562,7 @@ def main():
                             if button.get_rect().collidepoint(event.pos):
                                 button.click()
                                 if button != prev_button:
-                                    try:
-                                        prev_button.deselect()
-                                    except:
-                                        pass
+                                    prev_button.deselect()
                                 prev_button = button
                                 break
                         if toggle_connect:
@@ -570,6 +570,18 @@ def main():
                             node_to_connect.select()
                     elif move_node:
                         move_node = False
+                if (prev_button == buttons[len(buttons)-1] or prev_button == buttons[len(buttons)-2]) or not prev_button.is_selected():
+                    for node in graph.get_nodes():
+                        if in_range(pos, node.get_pos(), SIZE):
+                            node.set_color(LIGHTGREY)
+                        else:
+                            node.set_color(GREY)
+                    else:
+                        for edge in graph.get_edges():
+                            if edge.get_text_rect().collidepoint(pos):
+                                edge.set_color(LIGHTGREY)
+                            else:
+                                edge.set_color(BLACK)
                 if pygame.mouse.get_pressed()[0]:
                     if x <= WIDTH:
                         if buttons[0].is_selected(): #Add node
