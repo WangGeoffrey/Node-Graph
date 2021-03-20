@@ -63,8 +63,10 @@ class Node:
         pygame.draw.circle(WIN, WHITE, self.pos, SIZE)
 
 class Edge:
-    def __init__(self, node1, node2):
+    def __init__(self, node1, node2, toggle):
         self.color = BLACK
+        self.toggle = toggle
+        self.weight = 1
         self.distance(node1, node2)
         self.connecting = {node1, node2}
         self.edge = tuple(node.get_pos() for node in self.connecting)
@@ -72,9 +74,14 @@ class Edge:
     def distance(self, node1, node2):
         x1, y1 = node1.get_pos()
         x2, y2 = node2.get_pos()
-        self.weight = int(math.sqrt((x1-x2)**2+(y1-y2)**2))
-        self.text = font.render(str(self.weight), True, BLACK)
+        if self.toggle:
+            self.text = font.render(str(self.weight), True, BLACK)
+        else:
+            self.text = font.render(str(int(math.sqrt((x1-x2)**2+(y1-y2)**2))), True, BLACK)
         self.text_rect = self.text.get_rect(center=(min(x1, x2)+abs(x1-x2)/2, min(y1, y2)+abs(y1-y2)/2))
+
+    def toggle_weight(self):
+        self.toggle = not self.toggle
 
     def get_text_rect(self):
         return self.text_rect
@@ -83,7 +90,13 @@ class Edge:
         self.color = color
 
     def get_weight(self):
-        return self.weight
+        if self.toggle:
+            return self.weight
+        else:
+            n1, n2 = self.edge
+            x1, y1 = n1
+            x2, y2 = n2
+            return int(math.sqrt((x1-x2)**2+(y1-y2)**2))
 
     def get_connecting(self):
         return self.connecting
@@ -112,6 +125,7 @@ class Graph:
         self.nodes = []
         self.edges = []
         self.show_weights = True
+        self.custom_weights = False
 
     def get_nodes(self):
         return self.nodes
@@ -158,6 +172,15 @@ class Graph:
             self.draw()
         else:
             self.show_weights = True
+
+    def toggle_weight(self):
+        self.custom_weights = not self.custom_weights
+        for edge in self.edges:
+            edge.toggle_weight()
+            edge.move()
+
+    def get_toggle_weight(self):
+        return self.custom_weights
 
     def is_connectd_graph(self):
         connecting = connected(self.nodes[0], {self.nodes[0]})
@@ -524,18 +547,20 @@ def get_intersections(node1, node2):
 def main():
     WIN.fill(WHITE)
     buttons = [
-        Button(WIDTH+1, 0, SIDE_BAR, WIDTH//5, 'Add'),
-        Button(WIDTH+1, WIDTH//5, SIDE_BAR, WIDTH//5, 'Remove'),
-        Button(WIDTH+1, 2*WIDTH//5, SIDE_BAR, WIDTH//5, 'Connect'),
-        Button4(WIDTH+1, 3*WIDTH//5, SIDE_BAR, WIDTH//5, 'Hide', 'Show', lambda: graph.toggle_show()),
-        Button3(WIDTH+1, 4*WIDTH//5, SIDE_BAR, WIDTH//5, 'View', 'Return')
+        Button(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Add'),
+        Button(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Remove'),
+        Button(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, 'Connect'),
+        Button4(WIDTH+1, 3*WIDTH//6, SIDE_BAR, WIDTH//6, 'Custom weights', 'Default weights', lambda: graph.toggle_weight()),
+        Button4(WIDTH+1, 4*WIDTH//6, SIDE_BAR, WIDTH//6, 'Hide', 'Show', lambda: graph.toggle_show()),
+        Button3(WIDTH+1, 5*WIDTH//6, SIDE_BAR, WIDTH//6, 'View', 'Return')
     ]
     buttons2 = [
-        Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//5, 'Hamilton Cycle', lambda: graph.hamiltonian_cycle()),
-        Button2(WIDTH+1, WIDTH//5, SIDE_BAR, WIDTH//5, 'Max Matching', lambda: graph.max_matching()),
-        Button2(WIDTH+1, 2*WIDTH//5, SIDE_BAR, WIDTH//5, 'MST', lambda: graph.MST()),
+        Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Hamilton Cycle', lambda: graph.hamiltonian_cycle()),
+        Button2(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Max Matching', lambda: graph.max_matching()),
+        Button2(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, 'MST', lambda: graph.MST()),
         buttons[3],
-        buttons[4]
+        buttons[4],
+        buttons[5]
     ]
     graph = Graph()
     prev_pos = (-1, -1)
@@ -550,7 +575,7 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
             x, y = pos = pygame.mouse.get_pos()
-            if buttons[4].is_selected():
+            if buttons[5].is_selected():
                 if event.type == pygame.MOUSEBUTTONUP:
                     for button in buttons2:
                         if button.get_rect().collidepoint(event.pos):
@@ -624,7 +649,7 @@ def main():
                                 if in_range(pos, node.get_pos(), SIZE):
                                     if toggle_connect:
                                         if node != node_to_connect:
-                                            edge = Edge(node, node_to_connect)
+                                            edge = Edge(node, node_to_connect, graph.get_toggle_weight())
                                             valid = True
                                             for existing_edge in node.get_edges():
                                                 if existing_edge.is_equal(edge):
@@ -659,16 +684,16 @@ def main():
                                     move_node = True
                                     node_to_move = node
                                     break
-        if buttons[4].is_selected():
+        if buttons[5].is_selected():
             graph.draw()
             for button in buttons2:
                 button.clear()
                 if button.get_rect().collidepoint(pos):
                     button.hovered()
                 button.draw()
-            pygame.draw.line(WIN, BLACK, (WIDTH, 3*WIDTH//5), (WIDTH, WIDTH))
+            pygame.draw.line(WIN, BLACK, (WIDTH, 3*WIDTH//6), (WIDTH, WIDTH))
             for i in range(6):
-                pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//5), (WIDTH+SIDE_BAR, i*WIDTH//5))
+                pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//6), (WIDTH+SIDE_BAR, i*WIDTH//6))
         else:
             graph.draw()
             for button in buttons:
@@ -678,7 +703,7 @@ def main():
                 button.draw()
             pygame.draw.line(WIN, BLACK, (WIDTH, 0), (WIDTH, WIDTH))
             for i in range(6):
-                pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//5), (WIDTH+SIDE_BAR, i*WIDTH//5))
+                pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//6), (WIDTH+SIDE_BAR, i*WIDTH//6))
     pygame.quit()
 
 main()
