@@ -66,7 +66,7 @@ class Edge:
     def __init__(self, node1, node2, toggle):
         self.color = BLACK
         self.toggle = toggle
-        self.weight = 1
+        self.weight = '1'
         self.distance(node1, node2)
         self.connecting = {node1, node2}
         self.edge = tuple(node.get_pos() for node in self.connecting)
@@ -75,10 +75,37 @@ class Edge:
         x1, y1 = node1.get_pos()
         x2, y2 = node2.get_pos()
         if self.toggle:
-            self.text = font.render(str(self.weight), True, BLACK)
+            self.text = font.render(self.weight, True, BLACK)
         else:
             self.text = font.render(str(int(math.sqrt((x1-x2)**2+(y1-y2)**2))), True, BLACK)
         self.text_rect = self.text.get_rect(center=(min(x1, x2)+abs(x1-x2)/2, min(y1, y2)+abs(y1-y2)/2))
+
+    def input_weight(self, graph):
+        run = True
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                    return False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        run = False
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.weight = self.weight[:-1]
+                        if not bool(self.weight):
+                            self.weight = '0'
+                    else:
+                        try:
+                            int(event.unicode)
+                            if int(self.weight):
+                                self.weight += event.unicode
+                            else:
+                                self.weight = event.unicode
+                        except:
+                            pass
+            self.move()
+            graph.draw()
+        return True
 
     def toggle_weight(self):
         self.toggle = not self.toggle
@@ -91,7 +118,7 @@ class Edge:
 
     def get_weight(self):
         if self.toggle:
-            return self.weight
+            return int(self.weight)
         else:
             n1, n2 = self.edge
             x1, y1 = n1
@@ -597,7 +624,7 @@ def main():
                             node_to_connect.select()
                     elif move_node:
                         move_node = False
-                if not (buttons[0].is_selected() or buttons[2].is_selected() or buttons[4].is_selected()):
+                if not (buttons[0].is_selected() or buttons[2].is_selected() or buttons[5].is_selected()):
                     if bool(current_node):
                         if not in_range(pos, current_node.get_pos(), SIZE):
                             current_node.set_color(GREY)
@@ -678,12 +705,12 @@ def main():
                             prev_pos = pos
                             for edge in node_to_move.get_edges():
                                 edge.move()
-                        else:
-                            for node in graph.get_nodes():
-                                if in_range(pos, node.get_pos(), SIZE):
-                                    move_node = True
-                                    node_to_move = node
-                                    break
+                        elif bool(current_node):
+                            move_node = True
+                            node_to_move = current_node
+                        elif buttons[3].is_selected():
+                            if bool(current_edge):
+                                running = current_edge.input_weight(graph)
         if buttons[5].is_selected():
             graph.draw()
             for button in buttons2:
