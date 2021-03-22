@@ -95,14 +95,11 @@ class Edge:
                         if not bool(self.weight):
                             self.weight = '0'
                     else:
-                        try:
-                            int(event.unicode)
+                        if event.unicode.isnumeric():
                             if int(self.weight):
                                 self.weight += event.unicode
                             else:
                                 self.weight = event.unicode
-                        except:
-                            pass
             self.move()
             graph.draw()
         return True
@@ -235,24 +232,30 @@ class Graph:
             return False
         mst = set()
         trees = []
+        nodes = set(self.nodes)
         edges = self.edges.copy()
         edges.sort(key=lambda x: x.get_weight())
         while len(mst) < len(self.nodes)-1:
             min = edges.pop(0)
             linked = min.get_connecting()
-            index = 0
-            while index < len(trees):
-                tree = trees[index]
-                if linked.issubset(tree):
-                    break
-                elif bool(linked.intersection(tree)):
-                    linked = linked.union(tree)
-                    trees.pop(index)
-                else:
-                    index += 1
-            else:
-                trees.append(linked)
+            index = -1
+            if linked.issubset(nodes):
                 mst.add(min)
+                nodes = nodes.difference(linked)
+                trees.append(linked)
+            else:
+                for tree in trees:
+                    if linked.issubset(tree):
+                        break
+                    elif bool(linked.intersection(tree)):
+                        if index+1:
+                            trees[trees.index(tree)] = tree.union(trees.pop(index))
+                            break
+                        mst.add(min)
+                        index = trees.index(tree)
+                        trees[index] = tree.union(linked)
+                else:
+                    nodes = nodes.difference(linked)
         for edge in mst:
             edge.set_color(BLACK)
 
