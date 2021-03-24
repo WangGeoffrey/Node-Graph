@@ -9,6 +9,7 @@ pygame.display.set_caption('Node Graph')
 font = pygame.font.SysFont('Corbel', 15)
 
 BLACK = (0, 0, 0)
+DARKERGREY = (96, 96, 96)
 GREY = (128, 128, 128)
 LIGHTGREY = (192, 192, 192)
 WHITE = (255, 255, 255)
@@ -23,24 +24,36 @@ class Node:
         self.pos = pos
         self.color = GREY
         self.edges = set()
+        self.connected = set()
+        self.selected = False
 
     def get_connected(self):
-        result = set()
-        for edge in self.edges:
-            node1, node2 = edge.get_connecting()
-            if node1 != self:
-                result.add(node1)
-            else:
-                result.add(node2)
-        return result
+        return self.connected
+
+    def connect_node(self, node):
+        self.connected.add(node)
+
+    def disconnect_node(self, node):
+        if node in self.connected:
+            self.connected.remove(node)
 
     def get_pos(self):
         return self.pos
 
-    def select(self):
-        if self.color == GREY:
+    def hovered(self):
+        if not self.selected:
             self.color = LIGHTGREY
+
+    def unhovered(self):
+        if not self.selected:
+            self.color = GREY
+
+    def select(self):
+        if not self.selected:
+            self.selected = True
+            self.color = DARKERGREY
         else:
+            self.selected = False
             self.color = GREY
 
     def get_edges(self):
@@ -123,6 +136,11 @@ class Edge:
 
     def get_connecting(self):
         return self.connecting
+
+    def connected_to(self, node):
+        for other in self.connecting:
+            if node != other:
+                return other
 
     def is_equal(self, edge):
         return self.connecting == edge.get_connecting()
@@ -621,27 +639,26 @@ def main():
                             node_to_connect.select()
                     elif move_node:
                         move_node = False
-                if not (buttons[0].is_selected() or buttons[2].is_selected() or buttons[5].is_selected()):
-                    if bool(current_node):
-                        if not in_range(pos, current_node.get_pos(), SIZE):
-                            current_node.set_color(GREY)
-                            current_node = None
-                    elif bool(current_edge):
-                        if not current_edge.get_text_rect().collidepoint(pos):
-                            current_edge.set_color(BLACK)
-                            current_edge = None
-                    if not (bool(current_node) or bool(current_edge)):
-                        for node in graph.get_nodes():
-                            if in_range(pos, node.get_pos(), SIZE):
-                                node.set_color(LIGHTGREY)
-                                current_node = node
+                if bool(current_node):
+                    if not in_range(pos, current_node.get_pos(), SIZE):
+                        current_node.unhovered()
+                        current_node = None
+                elif bool(current_edge):
+                    if not current_edge.get_text_rect().collidepoint(pos):
+                        current_edge.set_color(BLACK)
+                        current_edge = None
+                if not (bool(current_node) or bool(current_edge)):
+                    for node in graph.get_nodes():
+                        if in_range(pos, node.get_pos(), SIZE):
+                            node.hovered()
+                            current_node = node
+                            break
+                    else:
+                        for edge in graph.get_edges():
+                            if edge.get_text_rect().collidepoint(pos):
+                                edge.set_color(GREY)
+                                current_edge = edge
                                 break
-                        else:
-                            for edge in graph.get_edges():
-                                if edge.get_text_rect().collidepoint(pos):
-                                    edge.set_color(LIGHTGREY)
-                                    current_edge = edge
-                                    break
                 if pygame.mouse.get_pressed()[0]:
                     if x <= WIDTH:
                         if buttons[0].is_selected(): #Add node
@@ -649,9 +666,8 @@ def main():
                                 valid = True
                                 for node in graph.get_nodes():
                                     if in_range(pos, node.get_pos(), SIZE*3):
-                                        valid = False
                                         break
-                                if valid:
+                                else:
                                     graph.add_node(Node(pos))
                         elif buttons[1].is_selected(): #Remove
                             if bool(current_node):
@@ -661,27 +677,26 @@ def main():
                                 graph.remove_node(current_node)
                                 for node in graph.get_nodes():
                                     node.update_edges(set(graph.get_edges()))
+                                    node.disconnect_node(current_node)
                                 current_node = None
                             elif bool(current_edge):
                                 graph.remove_edge(current_edge)
                                 for node in current_edge.get_connecting():
                                     node.update_edges(set(graph.get_edges()))
+                                    node.disconnect_node(current_edge.connected_to(node))
                                 current_edge.erase()
                                 current_edge = None
                         elif buttons[2].is_selected(): #Connect nodes
-                            for node in graph.get_nodes():
-                                if in_range(pos, node.get_pos(), SIZE):
+                            if bool(current_node):
+                                if in_range(pos, current_node.get_pos(), SIZE):
                                     if toggle_connect:
                                         if node != node_to_connect:
-                                            edge = Edge(node, node_to_connect)
-                                            valid = True
-                                            for existing_edge in node.get_edges():
-                                                if existing_edge.is_equal(edge):
-                                                    valid = False
-                                                    break
-                                            if valid:
+                                            if not node in node_to_connect.get_connected():
+                                                edge = Edge(node, node_to_connect)
                                                 node_to_connect.select()
+                                                node.connect_node(node_to_connect)
                                                 node.connect(edge)
+                                                node_to_connect.connect_node(node)
                                                 node_to_connect.connect(edge)
                                                 graph.add_edge(edge)
                                                 toggle_connect = False
