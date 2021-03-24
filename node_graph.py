@@ -15,6 +15,9 @@ WHITE = (255, 255, 255)
 
 SIZE = 20 #Node radius
 
+SHOW_WEIGHTS = True
+CUSTOM_WEIGHTS = False
+
 class Node:
     def __init__(self, pos):
         self.pos = pos
@@ -63,9 +66,8 @@ class Node:
         pygame.draw.circle(WIN, WHITE, self.pos, SIZE)
 
 class Edge:
-    def __init__(self, node1, node2, toggle):
+    def __init__(self, node1, node2):
         self.color = BLACK
-        self.toggle = toggle
         self.weight = '1'
         self.distance(node1, node2)
         self.connecting = {node1, node2}
@@ -74,7 +76,7 @@ class Edge:
     def distance(self, node1, node2):
         x1, y1 = node1.get_pos()
         x2, y2 = node2.get_pos()
-        if self.toggle:
+        if CUSTOM_WEIGHTS:
             self.text = font.render(self.weight, True, BLACK)
         else:
             self.text = font.render(str(int(math.sqrt((x1-x2)**2+(y1-y2)**2))), True, BLACK)
@@ -104,9 +106,6 @@ class Edge:
             graph.draw()
         return True
 
-    def toggle_weight(self):
-        self.toggle = not self.toggle
-
     def get_text_rect(self):
         return self.text_rect
 
@@ -114,7 +113,7 @@ class Edge:
         self.color = color
 
     def get_weight(self):
-        if self.toggle:
+        if CUSTOM_WEIGHTS:
             return int(self.weight)
         else:
             n1, n2 = self.edge
@@ -134,9 +133,9 @@ class Edge:
         self.distance(node1, node2)
         self.edge = tuple(node.get_pos() for node in self.connecting)
     
-    def draw(self, show):
+    def draw(self):
         pygame.draw.line(WIN, self.color, self.edge[0], self.edge[1])
-        if show:
+        if SHOW_WEIGHTS:
             WIN.blit(self.text, self.text_rect)
 
     def erase(self):
@@ -148,8 +147,6 @@ class Graph:
         self.matrix = [] #Incidence matrix
         self.nodes = []
         self.edges = []
-        self.show_weights = True
-        self.custom_weights = False
 
     def get_nodes(self):
         return self.nodes
@@ -189,18 +186,15 @@ class Graph:
         self.edges.remove(edge)
 
     def toggle_show(self):
-        if self.show_weights:
-            self.show_weights = False
-            for edge in self.edges:
-                edge.erase()
-            self.draw()
-        else:
-            self.show_weights = True
+        global SHOW_WEIGHTS
+        SHOW_WEIGHTS = not SHOW_WEIGHTS
+        for edge in self.edges:
+            edge.erase()
 
     def toggle_weight(self):
-        self.custom_weights = not self.custom_weights
+        global CUSTOM_WEIGHTS
+        CUSTOM_WEIGHTS = not CUSTOM_WEIGHTS
         for edge in self.edges:
-            edge.toggle_weight()
             edge.move()
 
     def get_toggle_weight(self):
@@ -335,7 +329,7 @@ class Graph:
 
     def draw(self):
         for edge in self.edges:
-            edge.draw(self.show_weights)
+            edge.draw()
         for node in self.nodes:
             node.draw()
             text = font.render(str(self.nodes.index(node)+1) , True , BLACK)
@@ -679,7 +673,7 @@ def main():
                                 if in_range(pos, node.get_pos(), SIZE):
                                     if toggle_connect:
                                         if node != node_to_connect:
-                                            edge = Edge(node, node_to_connect, graph.get_toggle_weight())
+                                            edge = Edge(node, node_to_connect)
                                             valid = True
                                             for existing_edge in node.get_edges():
                                                 if existing_edge.is_equal(edge):
