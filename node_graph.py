@@ -639,29 +639,42 @@ def main():
                             node_to_connect.select()
                     elif move_node:
                         move_node = False
-                if bool(current_node):
-                    if not in_range(pos, current_node.get_pos(), SIZE):
-                        current_node.unhovered()
-                        current_node = None
-                elif bool(current_edge):
-                    if not current_edge.get_text_rect().collidepoint(pos):
-                        current_edge.set_color(BLACK)
-                        current_edge = None
-                if not (bool(current_node) or bool(current_edge)):
-                    for node in graph.get_nodes():
-                        if in_range(pos, node.get_pos(), SIZE):
-                            node.hovered()
-                            current_node = node
-                            break
-                    else:
-                        for edge in graph.get_edges():
-                            if edge.get_text_rect().collidepoint(pos):
-                                edge.set_color(GREY)
-                                current_edge = edge
+                if not move_node:
+                    if bool(current_node):
+                        if not in_range(pos, current_node.get_pos(), SIZE):
+                            current_node.unhovered()
+                            current_node = None
+                    elif bool(current_edge):
+                        if not current_edge.get_text_rect().collidepoint(pos):
+                            current_edge.set_color(BLACK)
+                            current_edge = None
+                    if not (bool(current_node) or bool(current_edge)):
+                        for node in graph.get_nodes():
+                            if in_range(pos, node.get_pos(), SIZE):
+                                node.hovered()
+                                current_node = node
                                 break
+                        else:
+                            for edge in graph.get_edges():
+                                if edge.get_text_rect().collidepoint(pos):
+                                    edge.set_color(GREY)
+                                    current_edge = edge
+                                    break
                 if pygame.mouse.get_pressed()[0]:
                     if x <= WIDTH:
-                        if buttons[0].is_selected(): #Add node
+                        if move_node:
+                            pos = closest_valid_pos(graph.get_nodes(), pos, node_to_move)
+                            if not bool(pos):
+                                pos = prev_pos
+                            node_to_move.move(pos)
+                            prev_pos = pos
+                            for edge in node_to_move.get_edges():
+                                edge.move()
+                        elif buttons[0].is_selected(): #Add node
+                            if bool(current_node):
+                                move_node = True
+                                node_to_move = current_node
+                                continue
                             if SIZE*2 < x < WIDTH-SIZE*2 and SIZE*2 < y < WIDTH-SIZE*2:
                                 valid = True
                                 for node in graph.get_nodes():
@@ -709,14 +722,6 @@ def main():
                                         node_to_connect.select()
                                         toggle_connect = True
                                         break
-                        elif move_node:
-                            pos = closest_valid_pos(graph.get_nodes(), pos, node_to_move)
-                            if not bool(pos):
-                                pos = prev_pos
-                            node_to_move.move(pos)
-                            prev_pos = pos
-                            for edge in node_to_move.get_edges():
-                                edge.move()
                         elif bool(current_node):
                             move_node = True
                             node_to_move = current_node
