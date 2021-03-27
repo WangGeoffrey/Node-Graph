@@ -65,7 +65,7 @@ class Node:
         if node in self._connectedN:
             self._connectedN.remove(node)
 
-    def hovered(self):
+    def hover(self):
         if self.colorN != DARKERGREY:
             self.colorN = LIGHTGREY
 
@@ -90,23 +90,47 @@ class Node:
         pygame.draw.circle(WIN, WHITE, self.posN, SIZE)
 
 class Edge:
-    def __init__(self, node1, node2):
-        self.color = BLACK
-        self.weight = '1'
-        self.distance(node1, node2)
-        self.connecting = {node1, node2}
-        self.edge = tuple(node.posN for node in self.connecting)
 
-    def distance(self, node1, node2):
-        x1, y1 = node1.posN
-        x2, y2 = node2.posN
-        if CUSTOM_WEIGHTS:
-            self.text = font.render(self.weight, True, BLACK)
-        else:
-            self.text = font.render(str(int(math.sqrt((x1-x2)**2+(y1-y2)**2))), True, BLACK)
-        self.text_rect = self.text.get_rect(center=(min(x1, x2)+abs(x1-x2)/2, min(y1, y2)+abs(y1-y2)/2))
+    def __init__(self, node1: Node, node2: Node):
+        self.colorE = BLACK
+        self.connectingE = {node1, node2}
+        self.edge = (node1.posN, node2.posN)
+        self.weightE = '1'
+        self.update_text()
 
-    def input_weight(self, graph):
+    @property
+    def colorE(self) -> tuple:
+        return self._colorE
+
+    @colorE.setter
+    def colorE(self, color) -> None:
+        self._colorE = color
+
+    @property
+    def connectingE(self) -> set:
+        return self._connectingE.copy()
+
+    @connectingE.setter
+    def connectingE(self, nodes: set(Node, Node)) -> None:
+        self._connectingE = nodes
+
+    @property
+    def edge(self) -> tuple(tuple, tuple):
+        return self._edge
+
+    @edge.setter
+    def edge(self, edge: tuple(tuple, tuple)) -> None:
+        self._edge = edge
+
+    @property
+    def weightE(self) -> str:
+        return self._weightE
+
+    @weightE.setter
+    def weightE(self, input) -> None:
+        self._weightE = input
+
+    def input_weightE(self, graph) -> None:
         run = True
         while run:
             for event in pygame.event.get():
@@ -117,59 +141,68 @@ class Edge:
                     if event.key == pygame.K_RETURN:
                         run = False
                     elif event.key == pygame.K_BACKSPACE:
-                        self.weight = self.weight[:-1]
-                        if not bool(self.weight):
-                            self.weight = '0'
+                        self.weightE = self.weightE[:-1]
+                        if not bool(self.weightE):
+                            self.weightE = '0'
                     else:
                         if event.unicode.isnumeric():
-                            if int(self.weight):
-                                self.weight += event.unicode
+                            if int(self.weightE):
+                                self.weightE += event.unicode
                             else:
-                                self.weight = event.unicode
+                                self.weightE = event.unicode
             self.move()
             graph.draw()
         return True
 
-    def get_text_rect(self):
-        return self.text_rect
+    def distance(self) -> int:
+        x1, y1 = self.edge[0]
+        x2, y2 = self.edge[1]
+        return int(math.sqrt((x1-x2)**2+(y1-y2)**2))
 
-    def set_color(self, color):
-        self.color = color
-
-    def get_weight(self):
+    def get_weight(self) -> int:
         if CUSTOM_WEIGHTS:
-            return int(self.weight)
+            return int(self.weightE)
         else:
-            n1, n2 = self.edge
-            x1, y1 = n1
-            x2, y2 = n2
-            return int(math.sqrt((x1-x2)**2+(y1-y2)**2))
+            return self.distance()
 
-    def get_connecting(self):
-        return self.connecting
+    @property
+    def textE(self) -> Surface:
+        return self._textE
 
-    def connected_to(self, node):
-        for other in self.connecting:
-            if node != other:
-                return other
+    @textE.setter
+    def textE(self, text: Surface) -> None:
+        self._textE = text
+    
+    @property
+    def text_rectE(self) -> Rect:
+        return self._text_rectE
 
-    def is_equal(self, edge):
-        return self.connecting == edge.get_connecting()
+    @text_rectE.setter
+    def text_rectE(self, text_rect: Rect) -> None:
+        self._text_rectE = text_rect
+
+    def update_text(self):
+        if CUSTOM_WEIGHTS:
+            self.textE = font.render(self._weightE, True, BLACK)
+        else:
+            self.textE = font.render(str(self.distance()), True, BLACK)
+        x1, y1 = self.edge[0]
+        x2, y2 = self.edge[1]
+        self.text_rectE = self.textE.get_rect(center=(min(x1, x2)+abs(x1-x2)/2, min(y1, y2)+abs(y1-y2)/2))
 
     def move(self):
         self.erase()
-        node1, node2 = self.connecting
-        self.distance(node1, node2)
-        self.edge = tuple(node.posN for node in self.connecting)
-    
-    def draw(self):
-        pygame.draw.line(WIN, self.color, self.edge[0], self.edge[1])
+        self.update_text()
+        self.edge = tuple(node.posN for node in self.connectingE)
+
+    def draw(self) -> None:
+        pygame.draw.line(WIN, self.colorE, self.edge[0], self.edge[1])
         if SHOW_WEIGHTS:
-            WIN.blit(self.text, self.text_rect)
+            WIN.blit(self.textE, self.text_rectE)
 
     def erase(self):
         pygame.draw.line(WIN, WHITE, self.edge[0], self.edge[1])
-        pygame.draw.rect(WIN, WHITE, self.text_rect)
+        pygame.draw.rect(WIN, WHITE, self.text_rectE)
 
 class Graph:
     def __init__(self):
@@ -185,7 +218,7 @@ class Graph:
 
     def get_edge(self, node_pair):
         for edge in self.edges:
-            if edge.get_connecting() == node_pair:
+            if edge.connectingE == node_pair:
                 return edge
         return None
 
@@ -206,7 +239,7 @@ class Graph:
     def add_edge(self, edge):
         self.edges.append(edge)
         for index in range(len(self.nodes)):
-            self.matrix[index].append(int(self.nodes[index] in edge.get_connecting()))
+            self.matrix[index].append(int(self.nodes[index] in edge.connectingE))
 
     def remove_edge(self, edge):
         col_index = self.edges.index(edge)
@@ -245,7 +278,7 @@ class Graph:
         else:
             return True
         for node in nodes:
-            if self.has_cycle(nodes.difference({node}), set(edge for edge in edges if node not in edge.get_connecting())):
+            if self.has_cycle(nodes.difference({node}), set(edge for edge in edges if node not in edge.connectingE)):
                 return True
         return False
 
@@ -260,7 +293,7 @@ class Graph:
         edges.sort(key=lambda x: x.get_weight())
         while len(mst) < len(self.nodes)-1:
             min = edges.pop(0)
-            linked = min.get_connecting()
+            linked = min.connectingE
             index = -1
             if linked.issubset(nodes):
                 mst.add(min)
@@ -280,13 +313,13 @@ class Graph:
                 else:
                     nodes = nodes.difference(linked)
         for edge in mst:
-            edge.set_color(BLACK)
+            edge.colorE = BLACK
 
     def min_cover(self):
         exposed = self.max_matching()
         for node in exposed:
             for edge in node.edgesN:
-                edge.set_color(BLACK)
+                edge.colorE = BLACK
                 break
 
     def max_matching(self):
@@ -305,9 +338,9 @@ class Graph:
             matching = matching.difference(path).union(alternating_path)
             exposed = set(self.nodes)
             for edge in matching:
-                exposed = exposed.difference(edge.get_connecting())
+                exposed = exposed.difference(edge.connectingE)
         for edge in matching:
-            edge.set_color(BLACK)
+            edge.colorE = BLACK
         return exposed
 
     def augmenting_path(self, current, matching, exposed, considered, path, label):
@@ -335,7 +368,7 @@ class Graph:
         cycle = self.h_cycle(start, start, set(self.nodes), {start}, set())
         if bool(cycle):
             for edge in cycle:
-                edge.set_color(BLACK)
+                edge.colorE = BLACK
 
     def h_cycle(self, start, current, nodes, visited, cycle):
         if len(cycle) == len(nodes)-1 and start in current._connectedN and len(cycle) > 1:
@@ -350,11 +383,11 @@ class Graph:
 
     def deselect_edges(self):
         for edge in self.edges:
-            edge.set_color(LIGHTGREY)
+            edge.colorE = LIGHTGREY
 
     def reset_edges(self):
         for edge in self.edges:
-            edge.set_color(BLACK)
+            edge.colorE = BLACK
 
     def draw(self):
         for edge in self.edges:
@@ -656,19 +689,19 @@ def main():
                             current_node.unhover()
                             current_node = None
                     elif bool(current_edge):
-                        if not current_edge.get_text_rect().collidepoint(pos):
-                            current_edge.set_color(BLACK)
+                        if not current_edge.text_rectE.collidepoint(pos):
+                            current_edge.colorE = BLACK
                             current_edge = None
                     if not (bool(current_node) or bool(current_edge)):
                         for node in graph.get_nodes():
                             if in_range(pos, node.posN, SIZE):
-                                node.hovered()
+                                node.hover()
                                 current_node = node
                                 break
                         else:
                             for edge in graph.get_edges():
-                                if edge.get_text_rect().collidepoint(pos):
-                                    edge.set_color(LIGHTGREY)
+                                if edge.text_rectE.collidepoint(pos):
+                                    edge.colorE = LIGHTGREY
                                     current_edge = edge
                                     break
                 if pygame.mouse.get_pressed()[0]:
@@ -705,7 +738,7 @@ def main():
                                 current_node = None
                             elif bool(current_edge):
                                 graph.remove_edge(current_edge)
-                                for node in current_edge.get_connecting():
+                                for node in current_edge.connectingE:
                                     node.update_edges(set(graph.get_edges()))
                                     node.disconnect_node(current_edge.connected_to(node))
                                 current_edge.erase()
@@ -738,7 +771,7 @@ def main():
                             node_to_move = current_node
                         elif buttons[3].is_selected():
                             if bool(current_edge):
-                                running = current_edge.input_weight(graph)
+                                running = current_edge.input_weightE(graph)
         if buttons[5].is_selected():
             graph.draw()
             for button in buttons2:
