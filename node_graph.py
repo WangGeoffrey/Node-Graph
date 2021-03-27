@@ -1,3 +1,4 @@
+from __future__ import annotations
 import pygame
 import math
 
@@ -20,63 +21,73 @@ SHOW_WEIGHTS = True
 CUSTOM_WEIGHTS = False
 
 class Node:
-    def __init__(self, pos):
-        self.pos = pos
-        self.color = GREY
-        self.edges = set()
-        self.connected = set()
-        self.selected = False
 
-    def get_connected(self):
-        return self.connected
+    def __init__(self, pos: tuple):
+        self.colorN = GREY
+        self.posN = pos
+        self._edgesN = set()
+        self._connectedN = set()
 
-    def connect_node(self, node):
-        self.connected.add(node)
+    @property
+    def colorN(self) -> tuple:
+        return self._colorN
 
-    def disconnect_node(self, node):
-        if node in self.connected:
-            self.connected.remove(node)
+    @colorN.setter
+    def colorN(self, color: tuple) -> None:
+        self._colorN = color
 
-    def get_pos(self):
-        return self.pos
+    @property
+    def posN(self) -> tuple:
+        return self._posN
+
+    @posN.setter
+    def posN(self, pos: tuple) -> None:
+        self._posN = pos
+
+    @property
+    def edgesN(self) -> set:
+        return self._edgesN.copy()
+    
+    def add_edge(self, edge: Edge) -> None:
+        self._edgesN.add(edge)
+
+    def update_edges(self, edges: set()) -> None:
+        self._edgesN = self._edgesN.intersection(edges)
+
+    @property
+    def connectedN(self) -> set:
+        return self._connectedN.copy()
+
+    def connect_node(self, node: Node) -> None:
+        self._connectedN.add(node)
+
+    def disconnect_node(self, node: Node) -> None:
+        if node in self._connectedN:
+            self._connectedN.remove(node)
 
     def hovered(self):
-        if not self.selected:
-            self.color = LIGHTGREY
+        if self.colorN != DARKERGREY:
+            self.colorN = LIGHTGREY
 
-    def unhovered(self):
-        if not self.selected:
-            self.color = GREY
+    def unhover(self):
+        if self.colorN != DARKERGREY:
+            self.colorN = GREY
 
     def select(self):
-        if not self.selected:
-            self.selected = True
-            self.color = DARKERGREY
-        else:
-            self.selected = False
-            self.color = GREY
+        self.colorN = DARKERGREY
 
-    def get_edges(self):
-        return self.edges
-
-    def set_color(self, color):
-        self.color = color
+    def deselect(self):
+        self.colorN = GREY
 
     def move(self, pos):
         self.erase()
-        self.pos = pos
-
-    def connect(self, edge):
-        self.edges.add(edge)
-
-    def update_edges(self, edges):
-        self.edges = self.edges.intersection(edges)
+        self.posN = pos
 
     def draw(self):
-        pygame.draw.circle(WIN, self.color, self.pos, SIZE)
+        pygame.draw.circle(WIN, self.colorN, self.posN, SIZE)
 
     def erase(self):
-        pygame.draw.circle(WIN, WHITE, self.pos, SIZE)
+        pygame.draw.circle(WIN, WHITE, self.posN, SIZE)
 
 class Edge:
     def __init__(self, node1, node2):
@@ -84,11 +95,11 @@ class Edge:
         self.weight = '1'
         self.distance(node1, node2)
         self.connecting = {node1, node2}
-        self.edge = tuple(node.get_pos() for node in self.connecting)
+        self.edge = tuple(node.posN for node in self.connecting)
 
     def distance(self, node1, node2):
-        x1, y1 = node1.get_pos()
-        x2, y2 = node2.get_pos()
+        x1, y1 = node1.posN
+        x2, y2 = node2.posN
         if CUSTOM_WEIGHTS:
             self.text = font.render(self.weight, True, BLACK)
         else:
@@ -149,7 +160,7 @@ class Edge:
         self.erase()
         node1, node2 = self.connecting
         self.distance(node1, node2)
-        self.edge = tuple(node.get_pos() for node in self.connecting)
+        self.edge = tuple(node.posN for node in self.connecting)
     
     def draw(self):
         pygame.draw.line(WIN, self.color, self.edge[0], self.edge[1])
@@ -274,7 +285,7 @@ class Graph:
     def min_cover(self):
         exposed = self.max_matching()
         for node in exposed:
-            for edge in node.get_edges():
+            for edge in node.edgesN:
                 edge.set_color(BLACK)
                 break
 
@@ -300,7 +311,7 @@ class Graph:
         return exposed
 
     def augmenting_path(self, current, matching, exposed, considered, path, label):
-        for node in current.get_connected():
+        for node in current._connectedN:
             edge = self.get_edge({current, node})
             if edge not in considered and node not in label:
                 if node in exposed:
@@ -327,10 +338,10 @@ class Graph:
                 edge.set_color(BLACK)
 
     def h_cycle(self, start, current, nodes, visited, cycle):
-        if len(cycle) == len(nodes)-1 and start in current.get_connected() and len(cycle) > 1:
+        if len(cycle) == len(nodes)-1 and start in current._connectedN and len(cycle) > 1:
             return cycle.union({self.get_edge({current, start})})
         else:
-            for node in current.get_connected():
+            for node in current._connectedN:
                 if not node in visited:
                     temp = self.h_cycle(start, node, nodes, visited.union({node}), cycle.union({self.get_edge({current, node})}))
                     if bool(temp):
@@ -351,7 +362,7 @@ class Graph:
         for node in self.nodes:
             node.draw()
             text = font.render(str(self.nodes.index(node)+1) , True , BLACK)
-            text_rect = text.get_rect(center=node.get_pos())
+            text_rect = text.get_rect(center=node.posN)
             WIN.blit(text, text_rect)
         pygame.display.update()
 
@@ -442,7 +453,7 @@ class Button4(Button3):
         return self.execute()
 
 def connected(current, connecting):
-    for node in current.get_connected():
+    for node in current._connectedN:
         if not node in connecting:
             connecting.add(node)
             connecting = connected(node, connecting)
@@ -457,7 +468,7 @@ def valid_pos(nodes, pos, exclude):
     if not (SIZE*2 <= pos[0] <= WIDTH-SIZE*2 and SIZE*2 <= pos[1] <= WIDTH-SIZE*2):
         return False
     for node in nodes:
-        if in_range(pos, node.get_pos(), SIZE*3):
+        if in_range(pos, node.posN, SIZE*3):
             if not node in exclude:
                 return False
     return True
@@ -469,7 +480,7 @@ def closest_valid_pos(nodes, pos, node_to_move): #helper function of get_positio
     intersecting = set()
     in_display = SIZE*2 <= x <= WIDTH-SIZE*2 and SIZE*2 <= y <= WIDTH-SIZE*2
     for node in nodes:
-        if in_range(pos, node.get_pos(), SIZE*3):
+        if in_range(pos, node.posN, SIZE*3):
             if node != node_to_move:
                 intersecting.add(node)
     if in_display and not bool(intersecting): 
@@ -489,9 +500,9 @@ def closest_valid_pos(nodes, pos, node_to_move): #helper function of get_positio
             return pos
     elif in_display and len(intersecting) == 1:
         node = intersecting.pop()
-        if pos == node.get_pos():
+        if pos == node.posN:
             return None
-        x1, y1 = node.get_pos()
+        x1, y1 = node.posN
         scale = 3*SIZE/math.sqrt((x - x1)**2 + (y - y1)**2)
         pos = (x1+(x-x1)*scale, y1+(y-y1)*scale)
         if valid_pos(nodes, pos, {node, node_to_move}):
@@ -520,7 +531,7 @@ def get_positions(nodes, pos, node_to_move, valid, invalid): #recursive function
             b = 1
         direction = (a, b) #(horizontal, vertical)
     for node in nodes:
-        if in_range(pos, node.get_pos(), SIZE*3+0.1): #+0.1 for positions calculated from nodes
+        if in_range(pos, node.posN, SIZE*3+0.1): #+0.1 for positions calculated from nodes
             if node != node_to_move:
                 intersecting.add(node)
     if not bool(direction):
@@ -535,7 +546,7 @@ def get_positions(nodes, pos, node_to_move, valid, invalid): #recursive function
         positions = set()
         while bool(intersecting):
             node1 = intersecting.pop()
-            x1, y1 = node1.get_pos()
+            x1, y1 = node1.posN
             base1 = base2 = 0
             if direction[1] != 0:
                 y = WIDTH/2 + direction[1]*(WIDTH/2 - SIZE*2)
@@ -573,8 +584,8 @@ def add_pos(nodes, pos, node_to_move, exclude, valid, invalid):
     return valid, invalid
 
 def get_intersections(node1, node2):
-    x0, y0 = node1.get_pos()
-    x1, y1 = node2.get_pos()
+    x0, y0 = node1.posN
+    x1, y1 = node2.posN
     d=math.sqrt((x1-x0)**2 + (y1-y0)**2)
     a=d/2
     h=math.sqrt((SIZE*3)**2-a**2)
@@ -641,8 +652,8 @@ def main():
                         move_node = False
                 if not move_node:
                     if bool(current_node):
-                        if not in_range(pos, current_node.get_pos(), SIZE):
-                            current_node.unhovered()
+                        if not in_range(pos, current_node.posN, SIZE):
+                            current_node.unhover()
                             current_node = None
                     elif bool(current_edge):
                         if not current_edge.get_text_rect().collidepoint(pos):
@@ -650,14 +661,14 @@ def main():
                             current_edge = None
                     if not (bool(current_node) or bool(current_edge)):
                         for node in graph.get_nodes():
-                            if in_range(pos, node.get_pos(), SIZE):
+                            if in_range(pos, node.posN, SIZE):
                                 node.hovered()
                                 current_node = node
                                 break
                         else:
                             for edge in graph.get_edges():
                                 if edge.get_text_rect().collidepoint(pos):
-                                    edge.set_color(GREY)
+                                    edge.set_color(LIGHTGREY)
                                     current_edge = edge
                                     break
                 if pygame.mouse.get_pressed()[0]:
@@ -668,7 +679,7 @@ def main():
                                 pos = prev_pos
                             node_to_move.move(pos)
                             prev_pos = pos
-                            for edge in node_to_move.get_edges():
+                            for edge in node_to_move.edgesN:
                                 edge.move()
                         elif buttons[0].is_selected(): #Add node
                             if bool(current_node):
@@ -678,14 +689,14 @@ def main():
                             if SIZE*2 < x < WIDTH-SIZE*2 and SIZE*2 < y < WIDTH-SIZE*2:
                                 valid = True
                                 for node in graph.get_nodes():
-                                    if in_range(pos, node.get_pos(), SIZE*3):
+                                    if in_range(pos, node.posN, SIZE*3):
                                         break
                                 else:
                                     graph.add_node(Node(pos))
                         elif buttons[1].is_selected(): #Remove
                             if bool(current_node):
                                 current_node.erase()
-                                for edge in current_node.get_edges():
+                                for edge in current_node.edgesN:
                                     edge.erase()
                                 graph.remove_node(current_node)
                                 for node in graph.get_nodes():
@@ -701,21 +712,21 @@ def main():
                                 current_edge = None
                         elif buttons[2].is_selected(): #Connect nodes
                             if bool(current_node):
-                                if in_range(pos, current_node.get_pos(), SIZE):
+                                if in_range(pos, current_node.posN, SIZE):
                                     if toggle_connect:
                                         if node != node_to_connect:
-                                            if not node in node_to_connect.get_connected():
+                                            if not node in node_to_connect._connectedN:
                                                 edge = Edge(node, node_to_connect)
                                                 node_to_connect.select()
                                                 node.connect_node(node_to_connect)
-                                                node.connect(edge)
+                                                node.add_edge(edge)
                                                 node_to_connect.connect_node(node)
-                                                node_to_connect.connect(edge)
+                                                node_to_connect.add_edge(edge)
                                                 graph.add_edge(edge)
+                                                node_to_connect.deselect()
                                                 toggle_connect = False
-                                                break
                                         else:
-                                            node_to_connect.select()
+                                            node_to_connect.deselect()
                                             toggle_connect = False
                                     else:
                                         node_to_connect = node
