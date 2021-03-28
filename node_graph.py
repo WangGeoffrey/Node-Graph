@@ -79,14 +79,14 @@ class Node:
     def deselect(self):
         self.colorN = GREY
 
-    def move(self, pos):
-        self.erase()
+    def moveN(self, pos):
+        self.eraseN()
         self.posN = pos
 
-    def draw(self):
+    def drawN(self):
         pygame.draw.circle(WIN, self.colorN, self.posN, SIZE)
 
-    def erase(self):
+    def eraseN(self):
         pygame.draw.circle(WIN, WHITE, self.posN, SIZE)
 
 class Edge:
@@ -96,7 +96,7 @@ class Edge:
         self.connectingE = {node1, node2}
         self.edge = (node1.posN, node2.posN)
         self.weightE = '1'
-        self.update_text()
+        self.update_textE()
 
     @property
     def colorE(self) -> tuple:
@@ -130,7 +130,7 @@ class Edge:
     def weightE(self, input) -> None:
         self._weightE = input
 
-    def input_weightE(self, graph) -> None:
+    def input_weightE(self) -> None:
         run = True
         while run:
             for event in pygame.event.get():
@@ -150,8 +150,11 @@ class Edge:
                                 self.weightE += event.unicode
                             else:
                                 self.weightE = event.unicode
-            self.move()
-            graph.draw()
+            self.moveE()
+            self.drawE()
+            for node in self.connectingE:
+                node.drawN()
+            pygame.display.update()
         return True
 
     def distance(self) -> int:
@@ -159,7 +162,7 @@ class Edge:
         x2, y2 = self.edge[1]
         return int(math.sqrt((x1-x2)**2+(y1-y2)**2))
 
-    def get_weight(self) -> int:
+    def get_weightE(self) -> int:
         if CUSTOM_WEIGHTS:
             return int(self.weightE)
         else:
@@ -181,26 +184,26 @@ class Edge:
     def text_rectE(self, text_rect: Rect) -> None:
         self._text_rectE = text_rect
 
-    def update_text(self):
+    def update_textE(self):
         if CUSTOM_WEIGHTS:
-            self.textE = font.render(self._weightE, True, BLACK)
+            self.textE = font.render(self.weightE, True, BLACK)
         else:
             self.textE = font.render(str(self.distance()), True, BLACK)
         x1, y1 = self.edge[0]
         x2, y2 = self.edge[1]
         self.text_rectE = self.textE.get_rect(center=(min(x1, x2)+abs(x1-x2)/2, min(y1, y2)+abs(y1-y2)/2))
 
-    def move(self):
-        self.erase()
-        self.update_text()
+    def moveE(self):
+        self.eraseE()
         self.edge = tuple(node.posN for node in self.connectingE)
+        self.update_textE()
 
-    def draw(self) -> None:
+    def drawE(self) -> None:
         pygame.draw.line(WIN, self.colorE, self.edge[0], self.edge[1])
         if SHOW_WEIGHTS:
             WIN.blit(self.textE, self.text_rectE)
 
-    def erase(self):
+    def eraseE(self):
         pygame.draw.line(WIN, WHITE, self.edge[0], self.edge[1])
         pygame.draw.rect(WIN, WHITE, self.text_rectE)
 
@@ -251,13 +254,13 @@ class Graph:
         global SHOW_WEIGHTS
         SHOW_WEIGHTS = not SHOW_WEIGHTS
         for edge in self.edges:
-            edge.erase()
+            edge.eraseE()
 
     def toggle_weight(self):
         global CUSTOM_WEIGHTS
         CUSTOM_WEIGHTS = not CUSTOM_WEIGHTS
         for edge in self.edges:
-            edge.move()
+            edge.moveE()
 
     def get_toggle_weight(self):
         return self.custom_weights
@@ -290,7 +293,7 @@ class Graph:
         trees = []
         nodes = set(self.nodes)
         edges = self.edges.copy()
-        edges.sort(key=lambda x: x.get_weight())
+        edges.sort(key=lambda x: x.get_weightE())
         while len(mst) < len(self.nodes)-1:
             min = edges.pop(0)
             linked = min.connectingE
@@ -391,9 +394,9 @@ class Graph:
 
     def draw(self):
         for edge in self.edges:
-            edge.draw()
+            edge.drawE()
         for node in self.nodes:
-            node.draw()
+            node.drawN()
             text = font.render(str(self.nodes.index(node)+1) , True , BLACK)
             text_rect = text.get_rect(center=node.posN)
             WIN.blit(text, text_rect)
@@ -710,10 +713,10 @@ def main():
                             pos = closest_valid_pos(graph.get_nodes(), pos, node_to_move)
                             if not bool(pos):
                                 pos = prev_pos
-                            node_to_move.move(pos)
+                            node_to_move.moveN(pos)
                             prev_pos = pos
                             for edge in node_to_move.edgesN:
-                                edge.move()
+                                edge.moveE()
                         elif buttons[0].is_selected(): #Add node
                             if bool(current_node):
                                 move_node = True
@@ -728,9 +731,9 @@ def main():
                                     graph.add_node(Node(pos))
                         elif buttons[1].is_selected(): #Remove
                             if bool(current_node):
-                                current_node.erase()
+                                current_node.eraseN()
                                 for edge in current_node.edgesN:
-                                    edge.erase()
+                                    edge.eraseE()
                                 graph.remove_node(current_node)
                                 for node in graph.get_nodes():
                                     node.update_edges(set(graph.get_edges()))
@@ -740,8 +743,8 @@ def main():
                                 graph.remove_edge(current_edge)
                                 for node in current_edge.connectingE:
                                     node.update_edges(set(graph.get_edges()))
-                                    node.disconnect_node(current_edge.connected_to(node))
-                                current_edge.erase()
+                                    node.disconnect_node(current_edge.connectingE.difference({node}).pop())
+                                current_edge.eraseE()
                                 current_edge = None
                         elif buttons[2].is_selected(): #Connect nodes
                             if bool(current_node):
@@ -771,7 +774,7 @@ def main():
                             node_to_move = current_node
                         elif buttons[3].is_selected():
                             if bool(current_edge):
-                                running = current_edge.input_weightE(graph)
+                                running = current_edge.input_weightE()
         if buttons[5].is_selected():
             graph.draw()
             for button in buttons2:
