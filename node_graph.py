@@ -208,6 +208,7 @@ class Edge:
         pygame.draw.rect(WIN, WHITE, self.text_rectE)
 
 class Graph:
+
     def __init__(self):
         self._matrix = [] #Incidence matrix
         self._nodesG = []
@@ -333,7 +334,7 @@ class Graph:
             edge.colorE = BLACK
         return exposed
 
-    def augmenting_path(self, current, matching, exposed, considered, path, label):
+    def augmenting_path(self, current: Node, matching: set, exposed: set, considered: set, path: set, label: dict):
         for node in current.connectedN:
             edge = self.get_edge({current, node})
             if edge not in considered and node not in label:
@@ -360,7 +361,7 @@ class Graph:
             for edge in cycle:
                 edge.colorE = BLACK
 
-    def h_cycle(self, start, current, nodes, visited, cycle):
+    def h_cycle(self, start: Node, current: Node, nodes: set, visited: set, cycle: set):
         if len(cycle) == len(nodes)-1 and start in current.connectedN and len(cycle) > 1:
             return cycle.union({self.get_edge({current, start})})
         else:
