@@ -209,92 +209,79 @@ class Edge:
 
 class Graph:
     def __init__(self):
-        self.matrix = [] #Incidence matrix
-        self.nodes = []
-        self.edges = []
+        self._matrix = [] #Incidence matrix
+        self._nodesG = []
+        self._edgesG = []
 
-    def get_nodes(self):
-        return self.nodes
+    @property
+    def matrix(self) -> list:
+        return self._matrix.copy()
 
-    def get_edges(self):
-        return self.edges
+    @property
+    def nodesG(self) -> list:
+        return self._nodesG.copy()
 
-    def get_edge(self, node_pair):
-        for edge in self.edges:
-            if edge.connectingE == node_pair:
-                return edge
-        return None
-
-    def add_node(self, node):
-        self.nodes.append(node)
-        row = list(0 for element in self.edges)
-        self.matrix.append(row)
-
-    def remove_node(self, node):
-        offset = 0
-        row = self.matrix.pop(self.nodes.index(node))
-        for col in range(len(row)):
-            if row[col] == 1:
-                self.remove_edge(self.edges[col-offset])
-                offset += 1
-        self.nodes.remove(node)
-
-    def add_edge(self, edge):
-        self.edges.append(edge)
-        for index in range(len(self.nodes)):
-            self.matrix[index].append(int(self.nodes[index] in edge.connectingE))
-
-    def remove_edge(self, edge):
-        col_index = self.edges.index(edge)
-        for row in self.matrix:
-            row.pop(col_index)
-        self.edges.remove(edge)
+    @property
+    def edgesG(self) -> list:
+        return self._edgesG.copy()
 
     def toggle_show(self):
         global SHOW_WEIGHTS
         SHOW_WEIGHTS = not SHOW_WEIGHTS
-        for edge in self.edges:
+        for edge in self.edgesG:
             edge.eraseE()
 
     def toggle_weight(self):
         global CUSTOM_WEIGHTS
         CUSTOM_WEIGHTS = not CUSTOM_WEIGHTS
-        for edge in self.edges:
+        for edge in self.edgesG:
             edge.moveE()
 
-    def get_toggle_weight(self):
-        return self.custom_weights
+    def add_node(self, node: Node):
+        self._nodesG.append(node)
+        row = list(0 for element in self.edgesG)
+        self._matrix.append(row)
 
-    def is_connectd_graph(self):
-        connecting = connected(self.nodes[0], {self.nodes[0]})
-        return connecting == set(self.nodes)
+    def remove_node(self, node: Node):
+        offset = 0
+        row = self._matrix.pop(self._nodesG.index(node))
+        for col in range(len(row)):
+            if row[col] == 1:
+                self.remove_edge(self._edgesG[col-offset])
+                offset += 1
+        self._nodesG.remove(node)
 
-    def has_cycle(self, nodes, edges):
-        if len(nodes) < 3:
-            return False
-        for node in nodes:
-            incident = 0
-            for edge in edges:
-                incident += self.matrix[self.nodes.index(node)][self.edges.index(edge)]
-            if incident < 2:
-                break
-        else:
-            return True
-        for node in nodes:
-            if self.has_cycle(nodes.difference({node}), set(edge for edge in edges if node not in edge.connectingE)):
-                return True
-        return False
+    def add_edge(self, edge: Edge):
+        self._edgesG.append(edge)
+        for index in range(len(self.nodesG)):
+            self._matrix[index].append(int(self._nodesG[index] in edge.connectingE))
+
+    def remove_edge(self, edge: Edge):
+        col_index = self._edgesG.index(edge)
+        for row in self._matrix:
+            row.pop(col_index)
+        self._edgesG.remove(edge)
+
+    def get_edge(self, node_pair: set(Node, Node)):
+        for edge in self.edgesG:
+            if edge.connectingE == node_pair:
+                return edge
+        return None
+
+    def is_connected_graph(self) -> bool:
+        connecting = connected_graph(self.nodesG[0], {self.nodesG[0]})
+        return connecting == set(self.nodesG)
 
     def MST(self): #Minimum Spanning Tree
         self.deselect_edges()
-        if not (bool(self.nodes) and self.is_connectd_graph()):
+        if not (bool(self.nodesG) and self.is_connected_graph()):
             return False
         mst = set()
         trees = []
-        nodes = set(self.nodes)
-        edges = self.edges.copy()
+        nodes = set(self.nodesG)
+        edges = self.edgesG
         edges.sort(key=lambda x: x.get_weightE())
-        while len(mst) < len(self.nodes)-1:
+        while len(mst) < len(self.nodesG)-1:
             min = edges.pop(0)
             linked = min.connectingE
             index = -1
@@ -328,7 +315,7 @@ class Graph:
     def max_matching(self):
         self.deselect_edges()
         matching = set()
-        exposed = set(self.nodes)
+        exposed = set(self.nodesG)
         path = None
         while len(exposed) > 1:
             for node in exposed:
@@ -339,7 +326,7 @@ class Graph:
                 break
             alternating_path = path.difference(matching)
             matching = matching.difference(path).union(alternating_path)
-            exposed = set(self.nodes)
+            exposed = set(self.nodesG)
             for edge in matching:
                 exposed = exposed.difference(edge.connectingE)
         for edge in matching:
@@ -347,7 +334,7 @@ class Graph:
         return exposed
 
     def augmenting_path(self, current, matching, exposed, considered, path, label):
-        for node in current._connectedN:
+        for node in current.connectedN:
             edge = self.get_edge({current, node})
             if edge not in considered and node not in label:
                 if node in exposed:
@@ -365,19 +352,19 @@ class Graph:
 
     def hamiltonian_cycle(self):
         self.deselect_edges()
-        if not bool(self.nodes):
+        if not bool(self.nodesG):
             return False
-        start = self.nodes[0]
-        cycle = self.h_cycle(start, start, set(self.nodes), {start}, set())
+        start = self.nodesG[0]
+        cycle = self.h_cycle(start, start, set(self.nodesG), {start}, set())
         if bool(cycle):
             for edge in cycle:
                 edge.colorE = BLACK
 
     def h_cycle(self, start, current, nodes, visited, cycle):
-        if len(cycle) == len(nodes)-1 and start in current._connectedN and len(cycle) > 1:
+        if len(cycle) == len(nodes)-1 and start in current.connectedN and len(cycle) > 1:
             return cycle.union({self.get_edge({current, start})})
         else:
-            for node in current._connectedN:
+            for node in current.connectedN:
                 if not node in visited:
                     temp = self.h_cycle(start, node, nodes, visited.union({node}), cycle.union({self.get_edge({current, node})}))
                     if bool(temp):
@@ -385,19 +372,19 @@ class Graph:
         return None
 
     def deselect_edges(self):
-        for edge in self.edges:
+        for edge in self.edgesG:
             edge.colorE = LIGHTGREY
 
     def reset_edges(self):
-        for edge in self.edges:
+        for edge in self.edgesG:
             edge.colorE = BLACK
 
-    def draw(self):
-        for edge in self.edges:
+    def drawG(self):
+        for edge in self.edgesG:
             edge.drawE()
-        for node in self.nodes:
+        for node in self.nodesG:
             node.drawN()
-            text = font.render(str(self.nodes.index(node)+1) , True , BLACK)
+            text = font.render(str(self.nodesG.index(node)+1) , True , BLACK)
             text_rect = text.get_rect(center=node.posN)
             WIN.blit(text, text_rect)
         pygame.display.update()
@@ -488,12 +475,28 @@ class Button4(Button3):
         self.color = WHITE
         return self.execute()
 
-def connected(current, connecting):
-    for node in current._connectedN:
+def connected_graph(current, connecting):
+    for node in current.connectedN:
         if not node in connecting:
             connecting.add(node)
-            connecting = connected(node, connecting)
+            connecting = connected_graph(node, connecting)
     return connecting
+
+def has_cycle(matrix, nodes, edges, current_nodes, current_edges):
+    if len(nodes) < 3:
+        return False
+    for node in current_nodes:
+        incident = 0
+        for edge in current_edges:
+            incident += matrix[nodes.index(node)][edges.index(edge)]
+        if incident < 2:
+            break
+    else:
+        return True
+    for node in current_nodes:
+        if self.has_cycle(current_nodes.difference({node}), set(edge for edge in current_edges if node not in edge.connectingE)):
+            return True
+    return False
 
 def in_range(pos1, pos2, range):
     x1, y1 = pos1
@@ -696,13 +699,13 @@ def main():
                             current_edge.colorE = BLACK
                             current_edge = None
                     if not (bool(current_node) or bool(current_edge)):
-                        for node in graph.get_nodes():
+                        for node in graph.nodesG:
                             if in_range(pos, node.posN, SIZE):
                                 node.hover()
                                 current_node = node
                                 break
                         else:
-                            for edge in graph.get_edges():
+                            for edge in graph.edgesG:
                                 if edge.text_rectE.collidepoint(pos):
                                     edge.colorE = LIGHTGREY
                                     current_edge = edge
@@ -710,7 +713,7 @@ def main():
                 if pygame.mouse.get_pressed()[0]:
                     if x <= WIDTH:
                         if move_node:
-                            pos = closest_valid_pos(graph.get_nodes(), pos, node_to_move)
+                            pos = closest_valid_pos(graph.nodesG, pos, node_to_move)
                             if not bool(pos):
                                 pos = prev_pos
                             node_to_move.moveN(pos)
@@ -724,7 +727,7 @@ def main():
                                 continue
                             if SIZE*2 < x < WIDTH-SIZE*2 and SIZE*2 < y < WIDTH-SIZE*2:
                                 valid = True
-                                for node in graph.get_nodes():
+                                for node in graph.nodesG:
                                     if in_range(pos, node.posN, SIZE*3):
                                         break
                                 else:
@@ -735,14 +738,14 @@ def main():
                                 for edge in current_node.edgesN:
                                     edge.eraseE()
                                 graph.remove_node(current_node)
-                                for node in graph.get_nodes():
-                                    node.update_edges(set(graph.get_edges()))
+                                for node in graph.nodesG:
+                                    node.update_edges(set(graph.edgesG))
                                     node.disconnect_node(current_node)
                                 current_node = None
                             elif bool(current_edge):
                                 graph.remove_edge(current_edge)
                                 for node in current_edge.connectingE:
-                                    node.update_edges(set(graph.get_edges()))
+                                    node.update_edges(set(graph.edgesG))
                                     node.disconnect_node(current_edge.connectingE.difference({node}).pop())
                                 current_edge.eraseE()
                                 current_edge = None
@@ -751,7 +754,7 @@ def main():
                                 if in_range(pos, current_node.posN, SIZE):
                                     if toggle_connect:
                                         if node != node_to_connect:
-                                            if not node in node_to_connect._connectedN:
+                                            if not node in node_to_connect.connectedN:
                                                 edge = Edge(node, node_to_connect)
                                                 node_to_connect.select()
                                                 node.connect_node(node_to_connect)
@@ -776,7 +779,7 @@ def main():
                             if bool(current_edge):
                                 running = current_edge.input_weightE()
         if buttons[5].is_selected():
-            graph.draw()
+            graph.drawG()
             for button in buttons2:
                 button.clear()
                 if button.get_rect().collidepoint(pos):
@@ -786,7 +789,7 @@ def main():
             for i in range(6):
                 pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//6), (WIDTH+SIDE_BAR, i*WIDTH//6))
         else:
-            graph.draw()
+            graph.drawG()
             for button in buttons:
                 button.clear()
                 if button.get_rect().collidepoint(pos):
