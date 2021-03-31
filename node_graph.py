@@ -106,6 +106,12 @@ class Edge:
     def colorE(self, color) -> None:
         self._colorE = color
 
+    def active(self):
+        self.colorE = BLACK
+
+    def inactive(self):
+        self.colorE = LIGHTGREY
+
     @property
     def connectingE(self) -> set:
         return self._connectingE.copy()
@@ -305,13 +311,13 @@ class Graph:
                 else:
                     nodes = nodes.difference(linked)
         for edge in mst:
-            edge.colorE = BLACK
+            edge.active()
 
     def min_cover(self):
         exposed = self.max_matching()
         for node in exposed:
             for edge in node.edgesN:
-                edge.colorE = BLACK
+                edge.active()
                 break
 
     def max_matching(self):
@@ -332,7 +338,7 @@ class Graph:
             for edge in matching:
                 exposed = exposed.difference(edge.connectingE)
         for edge in matching:
-            edge.colorE = BLACK
+            edge.active()
         return exposed
 
     def augmenting_path(self, current: Node, matching: set, exposed: set, considered: set, path: set, label: dict):
@@ -360,7 +366,7 @@ class Graph:
         cycle = self.h_cycle(start, start, set(self.nodesG), {start}, set())
         if bool(cycle):
             for edge in cycle:
-                edge.colorE = BLACK
+                edge.active()
 
     def h_cycle(self, start: Node, current: Node, nodes: set, visited: set, cycle: set):
         if len(cycle) == len(nodes)-1 and start in current.connectedN and len(cycle) > 1:
@@ -375,11 +381,11 @@ class Graph:
 
     def deselect_edges(self):
         for edge in self.edgesG:
-            edge.colorE = LIGHTGREY
+            edge.inactive()
 
     def reset_edges(self):
         for edge in self.edgesG:
-            edge.colorE = BLACK
+            edge.active()
 
     def drawG(self):
         for edge in self.edgesG:
@@ -629,11 +635,14 @@ def get_intersections(node1, node2):
     x1, y1 = node2.posN
     d=math.sqrt((x1-x0)**2 + (y1-y0)**2)
     a=d/2
-    h=math.sqrt((SIZE*3)**2-a**2)
-    x2=x0+a*(x1-x0)/d   
-    y2=y0+a*(y1-y0)/d   
-    x3=x2+h*(y1-y0)/d     
-    y3=y2-h*(x1-x0)/d 
+    try:
+        h=math.sqrt((SIZE*3)**2-a**2)
+    except:
+        h=0
+    x2=x0+a*(x1-x0)/d
+    y2=y0+a*(y1-y0)/d
+    x3=x2+h*(y1-y0)/d
+    y3=y2-h*(x1-x0)/d
     x4=x2-h*(y1-y0)/d
     y4=y2+h*(x1-x0)/d
     return ((x3, y3), (x4, y4))
@@ -688,7 +697,7 @@ def main():
                                 break
                         if toggle_connect:
                             toggle_connect = False
-                            node_to_connect.select()
+                            node_to_connect.deselect()
                     elif move_node:
                         move_node = False
                 if not move_node:
@@ -698,7 +707,7 @@ def main():
                             current_node = None
                     elif bool(current_edge):
                         if not current_edge.text_rectE.collidepoint(pos):
-                            current_edge.colorE = BLACK
+                            current_edge.active()
                             current_edge = None
                     if not (bool(current_node) or bool(current_edge)):
                         for node in graph.nodesG:
@@ -709,7 +718,7 @@ def main():
                         else:
                             for edge in graph.edgesG:
                                 if edge.text_rectE.collidepoint(pos):
-                                    edge.colorE = LIGHTGREY
+                                    edge.inactive()
                                     current_edge = edge
                                     break
                 if pygame.mouse.get_pressed()[0]:
