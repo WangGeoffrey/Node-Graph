@@ -130,7 +130,7 @@ class Edge:
     def weightE(self, input) -> None:
         self._weightE = input
 
-    def input_weightE(self) -> None:
+    def input_weightE(self, graph) -> None:
         run = True
         while run:
             for event in pygame.event.get():
@@ -151,10 +151,11 @@ class Edge:
                             else:
                                 self.weightE = event.unicode
             self.moveE()
-            self.drawE()
-            for node in self.connectingE:
-                node.drawN()
-            pygame.display.update()
+            graph.drawG()
+            # self.drawE()
+            # for node in self.connectingE:
+            #     node.drawN() #Missing numbering
+            # pygame.display.update()
         return True
 
     def distance(self) -> int:
@@ -726,13 +727,8 @@ def main():
                                 move_node = True
                                 node_to_move = current_node
                                 continue
-                            if SIZE*2 < x < WIDTH-SIZE*2 and SIZE*2 < y < WIDTH-SIZE*2:
-                                valid = True
-                                for node in graph.nodesG:
-                                    if in_range(pos, node.posN, SIZE*3):
-                                        break
-                                else:
-                                    graph.add_node(Node(pos))
+                            if valid_pos(graph.nodesG, pos, set()):
+                                graph.add_node(Node(pos))
                         elif buttons[1].is_selected(): #Remove
                             if bool(current_node):
                                 current_node.eraseN()
@@ -754,13 +750,13 @@ def main():
                             if bool(current_node):
                                 if in_range(pos, current_node.posN, SIZE):
                                     if toggle_connect:
-                                        if node != node_to_connect:
-                                            if not node in node_to_connect.connectedN:
-                                                edge = Edge(node, node_to_connect)
+                                        if current_node != node_to_connect:
+                                            if not current_node in node_to_connect.connectedN:
+                                                edge = Edge(current_node, node_to_connect)
                                                 node_to_connect.select()
-                                                node.connect_node(node_to_connect)
-                                                node.add_edge(edge)
-                                                node_to_connect.connect_node(node)
+                                                current_node.connect_node(node_to_connect)
+                                                current_node.add_edge(edge)
+                                                node_to_connect.connect_node(current_node)
                                                 node_to_connect.add_edge(edge)
                                                 graph.add_edge(edge)
                                                 node_to_connect.deselect()
@@ -778,7 +774,7 @@ def main():
                             node_to_move = current_node
                         elif buttons[3].is_selected():
                             if bool(current_edge):
-                                running = current_edge.input_weightE()
+                                running = current_edge.input_weightE(graph)
         if buttons[5].is_selected():
             graph.drawG()
             for button in buttons2:
