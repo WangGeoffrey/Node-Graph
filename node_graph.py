@@ -397,15 +397,108 @@ class Graph:
             WIN.blit(text, text_rect)
         pygame.display.update()
 
-class Button:
-    def __init__(self, x_pos, y_pos, width, height, text):
-        self.color = WHITE
-        self.rect = pygame.Rect(x_pos, y_pos, width, height)
-        self.text = font.render(text, True, BLACK)
-        self.text_rect = self.text.get_rect(center=(x_pos + width//2, y_pos + height//2))
+class Button: #Option button
 
-    def get_rect(self):
-        return self.rect
+    def __init__(self, x_pos, y_pos, width, height, text):
+        self.colorB = WHITE
+        self.rectB = pygame.Rect(x_pos, y_pos, width, height)
+        self.textB = font.render(text, True, BLACK)
+        self.text_rectB = self.textB.get_rect(center=(x_pos + width//2, y_pos + height//2))
+
+    @property
+    def colorB(self) -> tuple:
+        return self._colorB
+
+    @colorB.setter
+    def colorB(self, color) -> None:
+        self._colorB = color
+
+    @property
+    def rectB(self) -> Rect:
+        return self._rectB
+
+    @rectB.setter
+    def rectB(self, rect: Rect) -> None:
+        self._rectB = rect
+
+    @property
+    def textB(self) -> Surface:
+        return self._textB
+
+    @textB.setter
+    def textB(self, text: Surface) -> None:
+        self._textB = text
+
+    @property
+    def text_rectB(self) -> Rect:
+        return self._text_rectB
+
+    @text_rectB.setter
+    def text_rectB(self, text_rect: Rect) -> None:
+        self._text_rectB = text_rect
+
+    def click(self):
+        pass
+
+    def draw(self):
+        pygame.draw.rect(WIN, self.colorB, self.rectB)
+        WIN.blit(self.textB, self.text_rectB)
+
+class ButtonT(Button): #Toggle button
+
+    def __init__(self, x_pos, y_pos, width, height, text, alt_text):
+        super(ButtonT, self).__init__(x_pos, y_pos, width, height, text)
+        self.alt_textB = font.render(alt_text, True, BLACK)
+        self.alt_text_rectB = self.alt_textB.get_rect(center=(x_pos + width//2, y_pos + height//2))
+        self.toggle = False
+
+    @property
+    def alt_textB(self) -> Surface:
+        return self._alt_textB
+
+    @alt_textB.setter
+    def alt_textB(self, alt_text: Surface) -> None:
+        self._alt_textB = alt_text
+
+    @property
+    def alt_text_rectB(self) -> Rect:
+        return self._alt_text_rectB
+
+    @alt_text_rectB.setter
+    def alt_text_rectB(self, alt_text_rect: Rect) -> None:
+        self._alt_text_rectB = alt_text_rect
+
+    @property
+    def toggle(self) -> bool:
+        return self._toggle
+
+    @toggle.setter
+    def toggle(self, value: bool) -> None:
+        self._toggle = value
+
+    def click(self):
+        self.toggle = not self.toggle
+        self.textB, self.alt_textB = (self.alt_textB, self.textB)
+        self.text_rectB, self.alt_text_rectB = (self.alt_text_rectB, self.text_rectB)
+
+class Button1(Button):
+
+    def is_selected(self):
+        return self.colorB == GREY
+
+    def hover(self):
+        if not self.is_selected():
+            self.colorB = LIGHTGREY
+
+    def unhover(self):
+        if not self.is_selected():
+            self.colorB = WHITE
+
+    def select(self):
+        self.colorB = GREY
+
+    def deselect(self):
+        self.colorB = WHITE
 
     def click(self):
         if self.is_selected():
@@ -413,75 +506,41 @@ class Button:
         else:
             self.select()
 
-    def select(self):
-        self.color = GREY
-
-    def deselect(self):
-        self.color = WHITE
-
-    def is_selected(self):
-        return self.color == GREY
-
-    def hovered(self):
-        if not self.is_selected():
-            self.color = LIGHTGREY
-
-    def clear(self):
-        if not self.is_selected():
-            self.color = WHITE
-
-    def draw(self):
-        pygame.draw.rect(WIN, self.color, self.rect)
-        WIN.blit(self.text, self.text_rect)
-
 class Button2(Button):
+
     def __init__(self, x_pos, y_pos, width, height, text, function):
         super(Button2, self).__init__(x_pos, y_pos, width, height, text)
         self.execute = function
 
+    def hover(self):
+        self.colorB = LIGHTGREY
+
+    def unhover(self):
+        self.colorB = WHITE
+
     def click(self):
-        self.color = GREY
-        self.draw()
-        self.color = WHITE
         return self.execute()
 
-class Button3(Button):
-    def __init__(self, x_pos, y_pos, width, height, text, alt_text):
-        super(Button3, self).__init__(x_pos, y_pos, width, height, text)
-        self.alt_text = font.render(alt_text, True, BLACK)
-        self.alt_text_rect = self.alt_text.get_rect(center=(x_pos + width//2, y_pos + height//2))
-        self.toggle = False
-
-    def click(self):
-        self.toggle = not self.toggle
+class Button3(ButtonT):
 
     def is_selected(self):
         return self.toggle
 
-    def hovered(self):
-        self.color = LIGHTGREY
+    def hover(self):
+        self.colorB = LIGHTGREY
 
-    def clear(self):
-        self.color = WHITE
-
-    def draw(self):
-        pygame.draw.rect(WIN, self.color, self.rect)
-        if not self.toggle:
-            WIN.blit(self.text, self.text_rect)
-        else:
-            WIN.blit(self.alt_text, self.alt_text_rect)
+    def unhover(self):
+        self.colorB = WHITE
 
 class Button4(Button3):
+
     def __init__(self, x_pos, y_pos, width, height, text, alt_text, function):
         super(Button4, self).__init__(x_pos, y_pos, width, height, text, alt_text)
         self.execute = function
 
     def click(self):
-        self.toggle = not self.toggle
-        self.color = GREY
-        self.draw()
-        self.color = WHITE
-        return self.execute()
+        super(Button4, self).click()
+        self.execute()
 
 def connected_graph(current, connecting):
     for node in current.connectedN:
@@ -650,9 +709,9 @@ def get_intersections(node1, node2):
 def main():
     WIN.fill(WHITE)
     buttons = [
-        Button(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Add'),
-        Button(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Remove'),
-        Button(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, 'Connect'),
+        Button1(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Add'),
+        Button1(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Remove'),
+        Button1(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, 'Connect'),
         Button4(WIDTH+1, 3*WIDTH//6, SIDE_BAR, WIDTH//6, 'Custom weights', 'Default weights', lambda: graph.toggle_weight()),
         Button4(WIDTH+1, 4*WIDTH//6, SIDE_BAR, WIDTH//6, 'Hide', 'Show', lambda: graph.toggle_show()),
         Button3(WIDTH+1, 5*WIDTH//6, SIDE_BAR, WIDTH//6, 'View', 'Return')
@@ -681,7 +740,7 @@ def main():
             if buttons[5].is_selected():
                 if event.type == pygame.MOUSEBUTTONUP:
                     for button in buttons2:
-                        if button.get_rect().collidepoint(event.pos):
+                        if button.rectB.collidepoint(event.pos):
                             button.click()
                             if buttons2.index(button) == len(buttons2)-1:
                                 graph.reset_edges()
@@ -689,10 +748,13 @@ def main():
                 if event.type == pygame.MOUSEBUTTONUP:
                     if WIDTH < x:
                         for button in buttons:
-                            if button.get_rect().collidepoint(event.pos):
+                            if button.rectB.collidepoint(event.pos):
                                 button.click()
                                 if button != prev_button:
-                                    prev_button.deselect()
+                                    try:
+                                        prev_button.deselect()
+                                    except:
+                                        pass
                                 prev_button = button
                                 break
                         if toggle_connect:
@@ -787,9 +849,9 @@ def main():
         if buttons[5].is_selected():
             graph.drawG()
             for button in buttons2:
-                button.clear()
-                if button.get_rect().collidepoint(pos):
-                    button.hovered()
+                button.unhover()
+                if button.rectB.collidepoint(pos):
+                    button.hover()
                 button.draw()
             pygame.draw.line(WIN, BLACK, (WIDTH, 3*WIDTH//6), (WIDTH, WIDTH))
             for i in range(6):
@@ -797,9 +859,9 @@ def main():
         else:
             graph.drawG()
             for button in buttons:
-                button.clear()
-                if button.get_rect().collidepoint(pos):
-                    button.hovered()
+                button.unhover()
+                if button.rectB.collidepoint(pos):
+                    button.hover()
                 button.draw()
             pygame.draw.line(WIN, BLACK, (WIDTH, 0), (WIDTH, WIDTH))
             for i in range(6):
