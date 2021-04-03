@@ -401,7 +401,8 @@ class Button: #Option button
 
     def __init__(self, x_pos, y_pos, width, height, text):
         self.colorB = WHITE
-        self.rectB = pygame.Rect(x_pos, y_pos, width, height)
+        self.border_rectB = pygame.Rect(x_pos, y_pos, width+1, height+1)
+        self.rectB = pygame.Rect(x_pos+1, y_pos+1, width-1, height-1)
         self.textB = font.render(text, True, BLACK)
         self.text_rectB = self.textB.get_rect(center=(x_pos + width//2, y_pos + height//2))
 
@@ -412,6 +413,14 @@ class Button: #Option button
     @colorB.setter
     def colorB(self, color) -> None:
         self._colorB = color
+
+    @property
+    def border_rectB(self) -> Rect:
+        return self._border_rectB
+
+    @border_rectB.setter
+    def border_rectB(self, rect: Rect) -> None:
+        self._border_rectB = rect
 
     @property
     def rectB(self) -> Rect:
@@ -441,6 +450,7 @@ class Button: #Option button
         pass
 
     def draw(self):
+        pygame.draw.rect(WIN, BLACK, self.border_rectB)
         pygame.draw.rect(WIN, self.colorB, self.rectB)
         WIN.blit(self.textB, self.text_rectB)
 
@@ -853,9 +863,6 @@ def main():
                 if button.rectB.collidepoint(pos):
                     button.hover()
                 button.draw()
-            pygame.draw.line(WIN, BLACK, (WIDTH, 3*WIDTH//6), (WIDTH, WIDTH))
-            for i in range(6):
-                pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//6), (WIDTH+SIDE_BAR, i*WIDTH//6))
         else:
             graph.drawG()
             for button in buttons:
@@ -863,9 +870,6 @@ def main():
                 if button.rectB.collidepoint(pos):
                     button.hover()
                 button.draw()
-            pygame.draw.line(WIN, BLACK, (WIDTH, 0), (WIDTH, WIDTH))
-            for i in range(6):
-                pygame.draw.line(WIN, BLACK, (WIDTH, i*WIDTH//6), (WIDTH+SIDE_BAR, i*WIDTH//6))
     pygame.quit()
 
 main()
