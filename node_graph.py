@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Dict, List, Set, Tuple
 import pygame
 import math
 
@@ -22,41 +23,49 @@ CUSTOM_WEIGHTS = False
 
 class Node:
 
-    def __init__(self, pos: tuple):
+    def __init__(self, pos: Tuple):
         self.colorN = GREY
         self.posN = pos
-        self._edgesN = set()
-        self._connectedN = set()
+        self.edgesN = set()
+        self.connectedN = set()
 
     @property
-    def colorN(self) -> tuple:
+    def colorN(self) -> Tuple:
         return self._colorN
 
     @colorN.setter
-    def colorN(self, color: tuple) -> None:
+    def colorN(self, color: Tuple) -> None:
         self._colorN = color
 
     @property
-    def posN(self) -> tuple:
+    def posN(self) -> Tuple:
         return self._posN
 
     @posN.setter
-    def posN(self, pos: tuple) -> None:
+    def posN(self, pos: Tuple) -> None:
         self._posN = pos
 
     @property
-    def edgesN(self) -> set:
+    def edgesN(self) -> Set[Edge]:
         return self._edgesN.copy()
+
+    @edgesN.setter
+    def edgesN(self, edges: Set[Edge]) -> None:
+        self._edgesN = edges
     
     def add_edge(self, edge: Edge) -> None:
         self._edgesN.add(edge)
 
-    def update_edges(self, edges: set()) -> None:
+    def update_edges(self, edges: Set[Edge]) -> None:
         self._edgesN = self._edgesN.intersection(edges)
 
     @property
-    def connectedN(self) -> set:
+    def connectedN(self) -> Set[Node]:
         return self._connectedN.copy()
+
+    @connectedN.setter
+    def connectedN(self, nodes: Set[Node]) -> None:
+        self._connectedN = nodes
 
     def connect_node(self, node: Node) -> None:
         self._connectedN.add(node)
@@ -99,7 +108,7 @@ class Edge:
         self.update_textE()
 
     @property
-    def colorE(self) -> tuple:
+    def colorE(self) -> Tuple:
         return self._colorE
 
     @colorE.setter
@@ -113,19 +122,19 @@ class Edge:
         self.colorE = LIGHTGREY
 
     @property
-    def connectingE(self) -> set:
+    def connectingE(self) -> Set[Node]:
         return self._connectingE.copy()
 
     @connectingE.setter
-    def connectingE(self, nodes: set(Node, Node)) -> None:
+    def connectingE(self, nodes: Set[Node]) -> None:
         self._connectingE = nodes
 
     @property
-    def edge(self) -> tuple(tuple, tuple):
+    def edge(self) -> Tuple[Tuple[int, int], Tuple[int, int]]:
         return self._edge
 
     @edge.setter
-    def edge(self, edge: tuple(tuple, tuple)) -> None:
+    def edge(self, edge: Tuple[Tuple[int, int], Tuple[int, int]]) -> None:
         self._edge = edge
 
     @property
@@ -133,10 +142,10 @@ class Edge:
         return self._weightE
 
     @weightE.setter
-    def weightE(self, input) -> None:
-        self._weightE = input
+    def weightE(self, input_weight: str) -> None:
+        self._weightE = input_weight
 
-    def input_weightE(self, graph) -> None:
+    def input_weightE(self, graph: Graph) -> None:
         run = True
         while run:
             for event in pygame.event.get():
@@ -205,7 +214,7 @@ class Edge:
         self.edge = tuple(node.posN for node in self.connectingE)
         self.update_textE()
 
-    def drawE(self) -> None:
+    def drawE(self):
         pygame.draw.line(WIN, self.colorE, self.edge[0], self.edge[1])
         if SHOW_WEIGHTS:
             WIN.blit(self.textE, self.text_rectE)
@@ -217,21 +226,33 @@ class Edge:
 class Graph:
 
     def __init__(self):
-        self._matrix = [] #Incidence matrix
-        self._nodesG = []
-        self._edgesG = []
+        self.matrix = [] #Incidence matrix
+        self.nodesG = []
+        self.edgesG = []
 
     @property
-    def matrix(self) -> list:
+    def matrix(self) -> List[List[int]]:
         return self._matrix.copy()
 
+    @matrix.setter
+    def matrix(self, matrix: List[List[int]]) -> None:
+        self._matrix = matrix
+
     @property
-    def nodesG(self) -> list:
+    def nodesG(self) -> List[Node]:
         return self._nodesG.copy()
+
+    @nodesG.setter
+    def nodesG(self, nodes: List[Node]) -> None:
+        self._nodesG = nodes
 
     @property
     def edgesG(self) -> list:
         return self._edgesG.copy()
+
+    @edgesG.setter
+    def edgesG(self, edges: List[Edge]) -> None:
+        self._edgesG = edges
 
     def toggle_show(self):
         global SHOW_WEIGHTS
@@ -270,7 +291,7 @@ class Graph:
             row.pop(col_index)
         self._edgesG.remove(edge)
 
-    def get_edge(self, node_pair: set(Node, Node)):
+    def get_edge(self, node_pair: Set[Node]):
         for edge in self.edgesG:
             if edge.connectingE == node_pair:
                 return edge
@@ -341,7 +362,7 @@ class Graph:
             edge.active()
         return exposed
 
-    def augmenting_path(self, current: Node, matching: set, exposed: set, considered: set, path: set, label: dict):
+    def augmenting_path(self, current: Node, matching: Set[Edge], exposed: Set[Node], considered: Set[Edge], path: Set[Edge], label: Dict[Node, bool]):
         for node in current.connectedN:
             edge = self.get_edge({current, node})
             if edge not in considered and node not in label:
@@ -368,7 +389,7 @@ class Graph:
             for edge in cycle:
                 edge.active()
 
-    def h_cycle(self, start: Node, current: Node, nodes: set, visited: set, cycle: set):
+    def h_cycle(self, start: Node, current: Node, nodes: Set[Node], visited: Set[Node], cycle: Set[Edge]):
         if len(cycle) == len(nodes)-1 and start in current.connectedN and len(cycle) > 1:
             return cycle.union({self.get_edge({current, start})})
         else:
@@ -407,7 +428,7 @@ class Button: #Option button
         self.text_rectB = self.textB.get_rect(center=(x_pos + width//2, y_pos + height//2))
 
     @property
-    def colorB(self) -> tuple:
+    def colorB(self) -> Tuple:
         return self._colorB
 
     @colorB.setter
@@ -580,7 +601,7 @@ def in_range(pos1, pos2, range):
     x2, y2 = pos2
     return math.sqrt((x1 - x2)**2 + (y1 - y2)**2) < range
 
-def valid_pos(nodes, pos, exclude):
+def valid_pos(nodes: List[Node], pos, exclude: Set[Node]):
     if not (SIZE*2 <= pos[0] <= WIDTH-SIZE*2 and SIZE*2 <= pos[1] <= WIDTH-SIZE*2):
         return False
     for node in nodes:
@@ -589,7 +610,7 @@ def valid_pos(nodes, pos, exclude):
                 return False
     return True
 
-def closest_valid_pos(nodes, pos, node_to_move): #helper function of get_positions()
+def closest_valid_pos(nodes: List[Node], pos, node_to_move: Node): #helper function of get_positions()
     x, y = pos
     valid = set()
     invalid = set()
@@ -631,7 +652,7 @@ def closest_valid_pos(nodes, pos, node_to_move): #helper function of get_positio
             closest = (dist, p)
     return closest[1]
 
-def get_positions(nodes, pos, node_to_move, valid, invalid): #recursive function
+def get_positions(nodes: List[Node], pos, node_to_move: Node, valid: Set[Tuple], invalid: Set[Tuple]): #recursive function
     x, y = pos
     intersecting = set()
     direction = None
@@ -688,7 +709,7 @@ def get_positions(nodes, pos, node_to_move, valid, invalid): #recursive function
                 valid, invalid = add_pos(nodes, pos2, node_to_move, {node_to_move, node1, node2}, valid, invalid)
         return valid, invalid
 
-def add_pos(nodes, pos, node_to_move, exclude, valid, invalid):
+def add_pos(nodes: List[Node], pos, node_to_move: Node, exclude: Set[Node], valid: Set[Tuple], invalid: Set[Tuple]):
     if pos in valid or pos in invalid:
         pass
     else:
