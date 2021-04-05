@@ -52,12 +52,6 @@ class Node:
     @edgesN.setter
     def edgesN(self, edges: Set[Edge]) -> None:
         self._edgesN = edges
-    
-    def add_edge(self, edge: Edge) -> None:
-        self._edgesN.add(edge)
-
-    def update_edges(self, edges: Set[Edge]) -> None:
-        self._edgesN = self._edgesN.intersection(edges)
 
     @property
     def connectedN(self) -> Set[Node]:
@@ -67,12 +61,18 @@ class Node:
     def connectedN(self, nodes: Set[Node]) -> None:
         self._connectedN = nodes
 
-    def connect_node(self, node: Node) -> None:
-        self._connectedN.add(node)
+    def attach_edge(self, edge: Edge):
+        self._edgesN.add(edge)
+        self._connectedN.add(edge.connectingE.difference({self}).pop())
 
-    def disconnect_node(self, node: Node) -> None:
-        if node in self._connectedN:
-            self._connectedN.remove(node)
+    def detach_edge(self, edge: Edge):
+        self._edgesN.remove(edge)
+        self._connectedN.remove(edge.connectingE.difference({self}).pop())
+
+    def update_edge(self, edges: Set[Edge]):
+        edge = set(self.edgesN).intersection(edges)
+        if bool(edge):
+            self.detach_edge(edge)
 
     def hover(self):
         if self.colorN != DARKERGREY:
@@ -97,6 +97,11 @@ class Node:
 
     def eraseN(self):
         pygame.draw.circle(WIN, WHITE, self.posN, SIZE)
+
+    def deleteN(self):
+        self.eraseN()
+        for edge in self._edgesN:
+            edge.deleteE()
 
 class Edge:
 
@@ -223,6 +228,11 @@ class Edge:
         pygame.draw.line(WIN, WHITE, self.edge[0], self.edge[1])
         pygame.draw.rect(WIN, WHITE, self.text_rectE)
 
+    def deleteE(self):
+        self.eraseE()
+        for node in self.connectingE:
+            node.detach_edge(self)
+
 class Graph:
 
     def __init__(self):
@@ -279,9 +289,12 @@ class Graph:
                 self.remove_edge(self._edgesG[col-offset])
                 offset += 1
         self._nodesG.remove(node)
+        node.deleteN()
 
     def add_edge(self, edge: Edge):
         self._edgesG.append(edge)
+        for node in edge.connectingE:
+            node.attach_edge(edge)
         for index in range(len(self.nodesG)):
             self._matrix[index].append(int(self._nodesG[index] in edge.connectingE))
 
@@ -290,6 +303,7 @@ class Graph:
         for row in self._matrix:
             row.pop(col_index)
         self._edgesG.remove(edge)
+        edge.deleteE()
 
     def get_edge(self, node_pair: Set[Node]):
         for edge in self.edgesG:
@@ -759,8 +773,8 @@ def main():
     prev_pos = (-1, -1)
     current_node = None
     current_edge = None
-    move_node = False
-    toggle_connect = False
+    node_to_move = None
+    node_to_connect = None
     prev_button = buttons[0]
     running = True
     while running:
@@ -788,12 +802,12 @@ def main():
                                         pass
                                 prev_button = button
                                 break
-                        if toggle_connect:
-                            toggle_connect = False
+                        if bool(node_to_connect):
                             node_to_connect.deselect()
-                    elif move_node:
-                        move_node = False
-                if not move_node:
+                            node_to_connect = None
+                    elif bool(node_to_move):
+                        node_to_move = None
+                if not bool(node_to_move):
                     if bool(current_node):
                         if not in_range(pos, current_node.posN, SIZE):
                             current_node.unhover()
@@ -816,7 +830,7 @@ def main():
                                     break
                 if pygame.mouse.get_pressed()[0]:
                     if x <= WIDTH:
-                        if move_node:
+                        if bool(node_to_move):
                             pos = closest_valid_pos(graph.nodesG, pos, node_to_move)
                             if not bool(pos):
                                 pos = prev_pos
@@ -826,53 +840,33 @@ def main():
                                 edge.moveE()
                         elif buttons[0].is_selected(): #Add node
                             if bool(current_node):
-                                move_node = True
                                 node_to_move = current_node
                                 continue
                             if valid_pos(graph.nodesG, pos, set()):
                                 graph.add_node(Node(pos))
                         elif buttons[1].is_selected(): #Remove
                             if bool(current_node):
-                                current_node.eraseN()
-                                for edge in current_node.edgesN:
-                                    edge.eraseE()
                                 graph.remove_node(current_node)
-                                for node in graph.nodesG:
-                                    node.update_edges(set(graph.edgesG))
-                                    node.disconnect_node(current_node)
                                 current_node = None
                             elif bool(current_edge):
                                 graph.remove_edge(current_edge)
-                                for node in current_edge.connectingE:
-                                    node.update_edges(set(graph.edgesG))
-                                    node.disconnect_node(current_edge.connectingE.difference({node}).pop())
-                                current_edge.eraseE()
                                 current_edge = None
                         elif buttons[2].is_selected(): #Connect nodes
                             if bool(current_node):
-                                if in_range(pos, current_node.posN, SIZE):
-                                    if toggle_connect:
-                                        if current_node != node_to_connect:
-                                            if not current_node in node_to_connect.connectedN:
-                                                edge = Edge(current_node, node_to_connect)
-                                                node_to_connect.select()
-                                                current_node.connect_node(node_to_connect)
-                                                current_node.add_edge(edge)
-                                                node_to_connect.connect_node(current_node)
-                                                node_to_connect.add_edge(edge)
-                                                graph.add_edge(edge)
-                                                node_to_connect.deselect()
-                                                toggle_connect = False
-                                        else:
+                                if bool(node_to_connect):
+                                    if current_node != node_to_connect:
+                                        if not current_node in node_to_connect.connectedN:
+                                            edge = Edge(current_node, node_to_connect)
+                                            graph.add_edge(edge)
                                             node_to_connect.deselect()
-                                            toggle_connect = False
+                                            node_to_connect = None
                                     else:
-                                        node_to_connect = node
-                                        node_to_connect.select()
-                                        toggle_connect = True
-                                        break
+                                        node_to_connect.deselect()
+                                        node_to_connect = None
+                                else:
+                                    node_to_connect = current_node
+                                    node_to_connect.select()
                         elif bool(current_node):
-                            move_node = True
                             node_to_move = current_node
                         elif buttons[3].is_selected():
                             if bool(current_edge):
