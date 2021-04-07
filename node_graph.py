@@ -1,4 +1,5 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
 from typing import Dict, List, Set, Tuple
 import pygame
 import math
@@ -103,14 +104,7 @@ class Node:
         for edge in self._edgesN:
             edge.deleteE()
 
-class Edge:
-
-    def __init__(self, node1: Node, node2: Node):
-        self.colorE = BLACK
-        self.connectingE = {node1, node2}
-        self.edge = (node1.posN, node2.posN)
-        self.weightE = '1'
-        self.update_textE()
+class Edge(ABC):
 
     @property
     def colorE(self) -> Tuple:
@@ -126,13 +120,13 @@ class Edge:
     def inactive(self):
         self.colorE = LIGHTGREY
 
-    @property
-    def connectingE(self) -> Set[Node]:
-        return self._connectingE.copy()
+    @abstractmethod
+    def connectingE(self):
+        return None
 
-    @connectingE.setter
-    def connectingE(self, nodes: Set[Node]) -> None:
-        self._connectingE = nodes
+    @abstractmethod
+    def connectingE(self, nodes):
+        pass
 
     @property
     def edge(self) -> Tuple[Tuple[int, int], Tuple[int, int]]:
@@ -214,6 +208,39 @@ class Edge:
         x2, y2 = self.edge[1]
         self.text_rectE = self.textE.get_rect(center=(min(x1, x2)+abs(x1-x2)/2, min(y1, y2)+abs(y1-y2)/2))
 
+    @abstractmethod
+    def moveE(self):
+        pass
+
+    @abstractmethod
+    def drawE(self):
+        pass
+
+    @abstractmethod
+    def eraseE(self):
+        pass
+
+    @abstractmethod
+    def deleteE(self):
+        pass
+
+class UEdge(Edge):
+
+    def __init__(self, node1: Node, node2: Node):
+        self.colorE = BLACK
+        self.connectingE = {node1, node2}
+        self.edge = (node1.posN, node2.posN)
+        self.weightE = '1'
+        self.update_textE()
+
+    @property
+    def connectingE(self) -> Set[Node]:
+        return set(self._connectingE)
+
+    @connectingE.setter
+    def connectingE(self, nodes: Set[Node]) -> None:
+        self._connectingE = nodes
+
     def moveE(self):
         self.eraseE()
         self.edge = tuple(node.posN for node in self.connectingE)
@@ -232,6 +259,89 @@ class Edge:
         self.eraseE()
         for node in self.connectingE:
             node.detach_edge(self)
+
+class DEdge(Edge):
+
+    def __init__(self, leaving_node: Node, entering_node: Node):
+        self.colorE = BLACK
+        self.weightE = '1'
+        self.connectingE = (leaving_node, entering_node)
+        self.edge = (leaving_node.posN, entering_node.posN)
+        self.opposite = None #Edge in opposite (if one exists)
+        self.update_textE()
+
+    @property
+    def connectingE(self) -> Tuple[Node, Node]:
+        return self._connectingE
+
+    @connectingE.setter
+    def connectingE(self, nodes: Tuple[Node, Node]) -> None:
+        self._connectingE = nodes
+
+    @property
+    def opposite(self) -> DEdge:
+        return self._opposite
+
+    @opposite.setter
+    def opposite(self, opposite: DEdge) -> None:
+        self._opposite = opposite
+
+    def head_pos(self):
+        x1, y1 = self.connectingE[0].posN
+        x2, y2 = self.connectingE[1].posN
+        x, y = x1-x2, y1-y2
+        r = SIZE+2
+        if x1 == x2:
+            return (x2, y2+r*y/abs(y))
+        elif y1 == y2:
+            return (x2+r*x/abs(x), y2)
+        ratio = abs(y)/abs(x)
+        new_x = math.sqrt(r**2/(ratio**2+1))
+        new_x, new_y = int(x2 + (x/abs(x))*new_x), int(y2 + (y/abs(y))*(new_x*ratio))
+        return (new_x, new_y)
+
+    def edge_pos(self):
+        x1, y1 = self.connectingE[0].posN
+        x2, y2 = self.connectingE[1].posN
+        x, y = x1-x2, y1-y2
+        r = int(SIZE/2)
+        if x1 == x2:
+            return (x1-r*y/abs(y), y1), (x2-r*y/abs(y), y2)
+        elif y1 == y2:
+            return (x1, y1+r*x/abs(x)), (x2, y2+r*x/abs(x))
+        ratio = abs(y)/abs(x)
+        new_y = math.sqrt(r**2/(ratio**2+1))
+        if (x1 < x2 and y1 < y2) or (x1 > x2 and y1 > y2):
+            new_x, new_y = int(-(x/abs(x))*(new_y*ratio)), int((y/abs(y))*new_y)
+        else:
+            new_x, new_y = int((x/abs(x))*(new_y*ratio)), int(-(y/abs(y))*new_y)
+        return (x1 + new_x, y1 + new_y), (x2 + new_x, y2 + new_y)
+
+    def moveE(self):
+        self.eraseE()
+        if not bool(self.opposite):
+            self.edge = tuple(node.posN for node in self.connectingE)
+        else:
+            self.edge = self.edge_pos()
+        self.update_textE()
+
+    def drawE(self):
+        pygame.draw.line(WIN, self.colorE, self.edge[0], self.edge[1])
+        pygame.draw.circle(WIN, self.colorE, self.head_pos(), 5)
+        if SHOW_WEIGHTS:
+            WIN.blit(self.textE, self.text_rectE)
+
+    def eraseE(self):
+        pygame.draw.line(WIN, WHITE, self.edge[0], self.edge[1])
+        pygame.draw.circle(WIN, WHITE, self.head_pos(), 5)
+        pygame.draw.rect(WIN, WHITE, self.text_rectE)
+
+    def deleteE(self):
+        self.eraseE()
+        for node in self.connectingE:
+            node.detach_edge(self)
+        if bool(self.opposite):
+            self.opposite.opposite = None
 
 class Graph:
 
@@ -856,7 +966,7 @@ def main():
                                 if bool(node_to_connect):
                                     if current_node != node_to_connect:
                                         if not current_node in node_to_connect.connectedN:
-                                            edge = Edge(current_node, node_to_connect)
+                                            edge = UEdge(current_node, node_to_connect)
                                             graph.add_edge(edge)
                                             node_to_connect.deselect()
                                             node_to_connect = None
