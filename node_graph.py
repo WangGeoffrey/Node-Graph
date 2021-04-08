@@ -104,6 +104,18 @@ class Node:
         for edge in self._edgesN:
             edge.deleteE()
 
+class DNode(Node):
+
+    def attach_edge(self, edge: Edge):
+        self._edgesN.add(edge)
+        if edge.connectingE[0] == self:
+            self._connectedN.add(edge.connectingE[1])
+
+    def detach_edge(self, edge: Edge):
+        self._edgesN.remove(edge)
+        if edge.connectingE[0] == self:
+            self._connectedN.remove(edge.connectingE[1])
+
 class Edge(ABC):
 
     @property
@@ -267,7 +279,7 @@ class DEdge(Edge):
         self.weightE = '1'
         self.connectingE = (leaving_node, entering_node)
         self.edge = (leaving_node.posN, entering_node.posN)
-        self.opposite = None #Edge in opposite (if one exists)
+        self.opposite = None #Edge in opposite direction (if one exists)
         self.update_textE()
 
     @property
@@ -342,6 +354,7 @@ class DEdge(Edge):
             node.detach_edge(self)
         if bool(self.opposite):
             self.opposite.opposite = None
+            self.opposite.moveE()
 
 class Graph:
 
