@@ -356,7 +356,7 @@ class DEdge(Edge):
             self.opposite.opposite = None
             self.opposite.moveE()
 
-class Graph:
+class Graph(ABC):
 
     def __init__(self):
         self.matrix = [] #Incidence matrix
@@ -414,12 +414,9 @@ class Graph:
         self._nodesG.remove(node)
         node.deleteN()
 
+    @abstractmethod
     def add_edge(self, edge: Edge):
-        self._edgesG.append(edge)
-        for node in edge.connectingE:
-            node.attach_edge(edge)
-        for index in range(len(self.nodesG)):
-            self._matrix[index].append(int(self._nodesG[index] in edge.connectingE))
+        pass
 
     def remove_edge(self, edge: Edge):
         col_index = self._edgesG.index(edge)
@@ -427,6 +424,33 @@ class Graph:
             row.pop(col_index)
         self._edgesG.remove(edge)
         edge.deleteE()
+
+    def deselect_edges(self):
+        for edge in self.edgesG:
+            edge.inactive()
+
+    def reset_edges(self):
+        for edge in self.edgesG:
+            edge.active()
+
+    def drawG(self):
+        for edge in self.edgesG:
+            edge.drawE()
+        for node in self.nodesG:
+            node.drawN()
+            text = font.render(str(self.nodesG.index(node)+1) , True , BLACK)
+            text_rect = text.get_rect(center=node.posN)
+            WIN.blit(text, text_rect)
+        pygame.display.update()
+
+class UGraph(Graph):
+
+    def add_edge(self, edge: Edge):
+        self._edgesG.append(edge)
+        for node in edge.connectingE:
+            node.attach_edge(edge)
+        for index in range(len(self.nodesG)):
+            self._matrix[index].append(int(self._nodesG[index] in edge.connectingE))
 
     def get_edge(self, node_pair: Set[Node]):
         for edge in self.edgesG:
@@ -537,23 +561,26 @@ class Graph:
                         return temp
         return None
 
-    def deselect_edges(self):
-        for edge in self.edgesG:
-            edge.inactive()
+class DGraph(Graph):
 
-    def reset_edges(self):
-        for edge in self.edgesG:
-            edge.active()
-
-    def drawG(self):
-        for edge in self.edgesG:
-            edge.drawE()
-        for node in self.nodesG:
-            node.drawN()
-            text = font.render(str(self.nodesG.index(node)+1) , True , BLACK)
-            text_rect = text.get_rect(center=node.posN)
-            WIN.blit(text, text_rect)
-        pygame.display.update()
+    def add_edge(self, edge: Edge):
+        for e in self._edgesG:
+            if set(e.connectingE) == set(edge.connectingE):
+                e.opposite = edge
+                edge.opposite = e
+                e.moveE()
+                edge.moveE()
+        self._edgesG.append(edge)
+        for node in edge.connectingE:
+            node.attach_edge(edge)
+        for index in range(len(self.nodesG)):
+            value = int(self._nodesG[index] in edge.connectingE)
+            if value:
+                if edge.connectingE.index(self._nodesG[index]):
+                    self._matrix[index].append(-value)
+                else:
+                    self._matrix[index].append(value)
+            
 
 class Button: #Option button
 
@@ -892,7 +919,7 @@ def main():
         buttons[4],
         buttons[5]
     ]
-    graph = Graph()
+    graph = UGraph()
     prev_pos = (-1, -1)
     current_node = None
     current_edge = None
