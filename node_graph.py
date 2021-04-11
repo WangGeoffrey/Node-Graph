@@ -299,17 +299,17 @@ class DEdge(Edge):
         self._opposite = opposite
 
     def head_pos(self):
-        x1, y1 = self.connectingE[0].posN
-        x2, y2 = self.connectingE[1].posN
+        x1, y1 = self.edge[0]
+        x2, y2 = self.edge[1]
         x, y = x1-x2, y1-y2
         r = SIZE+2
         if x1 == x2:
-            return (x2, y2+r*y/abs(y))
+            return (x1, y1-r*y/abs(y))
         elif y1 == y2:
-            return (x2+r*x/abs(x), y2)
+            return (x1-r*x/abs(x), y1)
         ratio = abs(y)/abs(x)
         new_x = math.sqrt(r**2/(ratio**2+1))
-        new_x, new_y = int(x2 + (x/abs(x))*new_x), int(y2 + (y/abs(y))*(new_x*ratio))
+        new_x, new_y = int(x1 - (x/abs(x))*new_x), int(y1 - (y/abs(y))*(new_x*ratio))
         return (new_x, new_y)
 
     def edge_pos(self):
@@ -580,7 +580,6 @@ class DGraph(Graph):
                     self._matrix[index].append(-value)
                 else:
                     self._matrix[index].append(value)
-            
 
 class Button: #Option button
 
