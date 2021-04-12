@@ -218,7 +218,7 @@ class Edge(ABC):
             self.textE = font.render(str(self.distance()), True, BLACK)
         x1, y1 = self.edge[0]
         x2, y2 = self.edge[1]
-        self.text_rectE = self.textE.get_rect(center=(min(x1, x2)+abs(x1-x2)/2, min(y1, y2)+abs(y1-y2)/2))
+        self.text_rectE = self.textE.get_rect(center=(x1+self.text_pos*(x2-x1), y1+self.text_pos*(y2-y1)))
 
     @abstractmethod
     def moveE(self):
@@ -243,6 +243,7 @@ class UEdge(Edge):
         self.connectingE = {node1, node2}
         self.edge = (node1.posN, node2.posN)
         self.weightE = '1'
+        self.text_pos = 1/2
         self.update_textE()
 
     @property
@@ -280,6 +281,7 @@ class DEdge(Edge):
         self.connectingE = (leaving_node, entering_node)
         self.edge = (leaving_node.posN, entering_node.posN)
         self.opposite = None #Edge in opposite direction (if one exists)
+        self.text_pos = 1/2
         self.update_textE()
 
     @property
@@ -297,6 +299,10 @@ class DEdge(Edge):
     @opposite.setter
     def opposite(self, opposite: DEdge) -> None:
         self._opposite = opposite
+        if bool(opposite):
+            self.text_pos = 4/7
+        else:
+            self.text_pos = 1/2
 
     def head_pos(self):
         x1, y1 = self.edge[0]
@@ -408,7 +414,7 @@ class Graph(ABC):
         offset = 0
         row = self._matrix.pop(self._nodesG.index(node))
         for col in range(len(row)):
-            if row[col] == 1:
+            if self._edgesG[col-offset] in node.edgesN:
                 self.remove_edge(self._edgesG[col-offset])
                 offset += 1
         self._nodesG.remove(node)
@@ -570,6 +576,7 @@ class DGraph(Graph):
                 edge.opposite = e
                 e.moveE()
                 edge.moveE()
+                break
         self._edgesG.append(edge)
         for node in edge.connectingE:
             node.attach_edge(edge)
@@ -580,6 +587,8 @@ class DGraph(Graph):
                     self._matrix[index].append(-value)
                 else:
                     self._matrix[index].append(value)
+            else:
+                self._matrix[index].append(0)
 
 class Button: #Option button
 
