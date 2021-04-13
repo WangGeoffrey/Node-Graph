@@ -911,7 +911,7 @@ def get_intersections(node1, node2):
 
 def main():
     WIN.fill(WHITE)
-    buttons = [
+    buttons1 = [
         Button1(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Add'),
         Button1(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Remove'),
         Button1(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, 'Connect'),
@@ -923,36 +923,50 @@ def main():
         Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Hamilton Cycle', lambda: graph.hamiltonian_cycle()),
         Button2(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Max Matching', lambda: graph.max_matching()),
         Button2(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, 'MST', lambda: graph.MST()),
-        buttons[3],
-        buttons[4],
-        buttons[5]
+        buttons1[3],
+        buttons1[4],
+        buttons1[5]
     ]
+    buttons3 = [
+        Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//6, '1', lambda *args: None),
+        Button2(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, '2', lambda *args: None),
+        Button2(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, '3', lambda *args: None),
+        buttons1[3],
+        buttons1[4],
+        buttons1[5]
+    ]
+    buttons = buttons1
+    alt_buttons = buttons2
     graph = UGraph()
+    directed = False
     prev_pos = (-1, -1)
     current_node = None
     current_edge = None
     node_to_move = None
     node_to_connect = None
-    prev_button = buttons[0]
+    prev_button = buttons1[0]
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             x, y = pos = pygame.mouse.get_pos()
-            if buttons[5].is_selected():
+            if buttons1[5].is_selected():
                 if event.type == pygame.MOUSEBUTTONUP:
-                    for button in buttons2:
+                    for button in buttons:
                         if button.rectB.collidepoint(event.pos):
                             button.click()
-                            if buttons2.index(button) == len(buttons2)-1:
+                            if buttons.index(button) == len(buttons)-1:
                                 graph.reset_edges()
+                                buttons = buttons1
             else:
                 if event.type == pygame.MOUSEBUTTONUP:
                     if WIDTH < x:
-                        for button in buttons:
+                        for button in buttons1:
                             if button.rectB.collidepoint(event.pos):
                                 button.click()
+                                if buttons1.index(button) == len(buttons)-1:
+                                    buttons = alt_buttons
                                 if button != prev_button:
                                     try:
                                         prev_button.deselect()
@@ -965,6 +979,16 @@ def main():
                             node_to_connect = None
                     elif bool(node_to_move):
                         node_to_move = None
+                if pygame.mouse.get_pressed()[2]:
+                    del graph
+                    pygame.draw.rect(WIN, WHITE, pygame.Rect(0, 0, WIDTH, WIDTH))
+                    if directed:
+                        graph = UGraph()
+                        alt_buttons = buttons2
+                    else:
+                        graph = DGraph()
+                        alt_buttons = buttons3
+                    directed = not directed
                 if not bool(node_to_move):
                     if bool(current_node):
                         if not in_range(pos, current_node.posN, SIZE):
@@ -996,25 +1020,31 @@ def main():
                             prev_pos = pos
                             for edge in node_to_move.edgesN:
                                 edge.moveE()
-                        elif buttons[0].is_selected(): #Add node
+                        elif buttons1[0].is_selected(): #Add node
                             if bool(current_node):
                                 node_to_move = current_node
                                 continue
                             if valid_pos(graph.nodesG, pos, set()):
-                                graph.add_node(Node(pos))
-                        elif buttons[1].is_selected(): #Remove
+                                if directed:
+                                    graph.add_node(DNode(pos))
+                                else:
+                                    graph.add_node(Node(pos))
+                        elif buttons1[1].is_selected(): #Remove
                             if bool(current_node):
                                 graph.remove_node(current_node)
                                 current_node = None
                             elif bool(current_edge):
                                 graph.remove_edge(current_edge)
                                 current_edge = None
-                        elif buttons[2].is_selected(): #Connect nodes
+                        elif buttons1[2].is_selected(): #Connect nodes
                             if bool(current_node):
                                 if bool(node_to_connect):
                                     if current_node != node_to_connect:
-                                        if not current_node in node_to_connect.connectedN:
-                                            edge = UEdge(current_node, node_to_connect)
+                                        if not node_to_connect in current_node.connectedN:
+                                            if directed:
+                                                edge = DEdge(current_node, node_to_connect)
+                                            else:
+                                                edge = UEdge(current_node, node_to_connect)
                                             graph.add_edge(edge)
                                             node_to_connect.deselect()
                                             node_to_connect = None
@@ -1026,23 +1056,15 @@ def main():
                                     node_to_connect.select()
                         elif bool(current_node):
                             node_to_move = current_node
-                        elif buttons[3].is_selected():
+                        elif buttons1[3].is_selected():
                             if bool(current_edge):
                                 running = current_edge.input_weightE(graph)
-        if buttons[5].is_selected():
-            graph.drawG()
-            for button in buttons2:
-                button.unhover()
-                if button.rectB.collidepoint(pos):
-                    button.hover()
-                button.draw()
-        else:
-            graph.drawG()
-            for button in buttons:
-                button.unhover()
-                if button.rectB.collidepoint(pos):
-                    button.hover()
-                button.draw()
+        graph.drawG()
+        for button in buttons:
+            button.unhover()
+            if button.rectB.collidepoint(pos):
+                button.hover()
+            button.draw()
     pygame.quit()
 
 main()
