@@ -16,6 +16,7 @@ DARKERGREY = (96, 96, 96)
 GREY = (128, 128, 128)
 LIGHTGREY = (192, 192, 192)
 WHITE = (255, 255, 255)
+RED = (255, 0, 0)
 
 SIZE = 20 #Node radius
 
@@ -127,10 +128,13 @@ class Edge(ABC):
         self._colorE = color
 
     def active(self):
-        self.colorE = BLACK
+        self.colorE = RED
 
     def inactive(self):
         self.colorE = LIGHTGREY
+
+    def default(self):
+        self.colorE = BLACK
 
     @abstractmethod
     def connectingE(self):
@@ -437,7 +441,7 @@ class Graph(ABC):
 
     def reset_edges(self):
         for edge in self.edgesG:
-            edge.active()
+            edge.default()
 
     def drawG(self):
         for edge in self.edgesG:
@@ -996,7 +1000,7 @@ def main():
                             current_node = None
                     elif bool(current_edge):
                         if not current_edge.text_rectE.collidepoint(pos):
-                            current_edge.active()
+                            current_edge.default()
                             current_edge = None
                     if not (bool(current_node) or bool(current_edge)):
                         for node in graph.nodesG:
