@@ -573,6 +573,10 @@ class UGraph(Graph):
 
 class DGraph(Graph):
 
+    def __init__(self):
+        super(DGraph, self).__init__()
+        self.labeling = {}
+
     def add_edge(self, edge: Edge):
         for e in self._edgesG:
             if set(e.connectingE) == set(edge.connectingE):
@@ -593,6 +597,59 @@ class DGraph(Graph):
                     self._matrix[index].append(value)
             else:
                 self._matrix[index].append(0)
+
+    def select(self, label):
+        self.reset_labels()
+        current_node = None
+        labeled = 0
+        run = True
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                    return False
+                pos = pygame.mouse.get_pos()
+                if bool(current_node):
+                    if not in_range(pos, current_node.posN, SIZE):
+                        current_node.unhover()
+                        current_node = None
+                if not (bool(current_node)):
+                    for node in self.nodesG:
+                        if in_range(pos, node.posN, SIZE):
+                            node.hover()
+                            current_node = node
+                            break
+                if event.type == pygame.MOUSEBUTTONUP:
+                    if bool(current_node):
+                        if current_node in self.labeling:
+                            self.labeling.pop(current_node)
+                            labeled = labeled - 1
+                        else:
+                            self.labeling[current_node] = label[labeled]
+                            labeled = labeled + 1
+                            if labeled == len(label):
+                                run = False
+                self.drawG()
+        current_node.unhover()
+        self.drawG()
+        return True
+
+    def reset_labels(self):
+        self.labeling.clear()
+        self.drawG()
+
+    def drawG(self):
+        for edge in self.edgesG:
+            edge.drawE()
+        for node in self.nodesG:
+            node.drawN()
+            if node in self.labeling:
+                text = font.render(self.labeling[node], True, BLACK)
+            else:
+                text = font.render(str(self.nodesG.index(node)+1) , True , BLACK)
+            text_rect = text.get_rect(center=node.posN)
+            WIN.blit(text, text_rect)
+        pygame.display.update()
 
 class Button: #Option button
 
@@ -959,7 +1016,7 @@ def main():
                 if event.type == pygame.MOUSEBUTTONUP:
                     for button in buttons:
                         if button.rectB.collidepoint(event.pos):
-                            button.click()
+                            running = button.click()
                             if buttons.index(button) == len(buttons)-1:
                                 graph.reset_edges()
                                 buttons = buttons1
