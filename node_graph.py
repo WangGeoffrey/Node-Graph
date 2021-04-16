@@ -504,6 +504,7 @@ class UGraph(Graph):
                     nodes = nodes.difference(linked)
         for edge in mst:
             edge.active()
+        return True
 
     def min_cover(self):
         exposed = self.max_matching()
@@ -511,6 +512,7 @@ class UGraph(Graph):
             for edge in node.edgesN:
                 edge.active()
                 break
+        return True
 
     def max_matching(self):
         self.deselect_edges()
@@ -531,7 +533,8 @@ class UGraph(Graph):
                 exposed = exposed.difference(edge.connectingE)
         for edge in matching:
             edge.active()
-        return exposed
+        # return exposed #For min cover
+        return True
 
     def augmenting_path(self, current: Node, matching: Set[Edge], exposed: Set[Node], considered: Set[Edge], path: Set[Edge], label: Dict[Node, bool]):
         for node in current.connectedN:
@@ -559,6 +562,7 @@ class UGraph(Graph):
         if bool(cycle):
             for edge in cycle:
                 edge.active()
+        return True
 
     def h_cycle(self, start: Node, current: Node, nodes: Set[Node], visited: Set[Node], cycle: Set[Edge]):
         if len(cycle) == len(nodes)-1 and start in current.connectedN and len(cycle) > 1:
@@ -597,6 +601,12 @@ class DGraph(Graph):
                     self._matrix[index].append(value)
             else:
                 self._matrix[index].append(0)
+
+    def get_edge(self, node_pair: Tuple(Node, Node)):
+        for edge in self.edgesG:
+            if edge.connectingE == node_pair:
+                return edge
+        return None
 
     def select(self, label):
         self.reset_labels()
