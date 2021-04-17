@@ -314,12 +314,12 @@ class DEdge(Edge):
         x, y = x1-x2, y1-y2
         r = SIZE+2
         if x1 == x2:
-            return (x1, y1-r*y/abs(y))
+            return (x2, y2+r*y/abs(y))
         elif y1 == y2:
-            return (x1-r*x/abs(x), y1)
+            return (x2+r*x/abs(x), y2)
         ratio = abs(y)/abs(x)
         new_x = math.sqrt(r**2/(ratio**2+1))
-        new_x, new_y = int(x1 - (x/abs(x))*new_x), int(y1 - (y/abs(y))*(new_x*ratio))
+        new_x, new_y = int(x2 + (x/abs(x))*new_x), int(y2 + (y/abs(y))*(new_x*ratio))
         return (new_x, new_y)
 
     def edge_pos(self):
@@ -754,6 +754,7 @@ class ButtonT(Button): #Toggle button
         self.toggle = not self.toggle
         self.textB, self.alt_textB = (self.alt_textB, self.textB)
         self.text_rectB, self.alt_text_rectB = (self.alt_text_rectB, self.text_rectB)
+        return True
 
 class Button1(Button):
 
@@ -779,6 +780,7 @@ class Button1(Button):
             self.deselect()
         else:
             self.select()
+        return True
 
 class Button2(Button):
 
@@ -814,7 +816,7 @@ class Button4(Button3):
 
     def click(self):
         super(Button4, self).click()
-        self.execute()
+        return self.execute()
 
 def connected_graph(current, connecting):
     for node in current.connectedN:
@@ -1111,11 +1113,11 @@ def main():
                             if bool(current_node):
                                 if bool(node_to_connect):
                                     if current_node != node_to_connect:
-                                        if not node_to_connect in current_node.connectedN:
+                                        if not current_node in node_to_connect.connectedN:
                                             if directed:
-                                                edge = DEdge(current_node, node_to_connect)
+                                                edge = DEdge(node_to_connect, current_node)
                                             else:
-                                                edge = UEdge(current_node, node_to_connect)
+                                                edge = UEdge(node_to_connect, current_node)
                                             graph.add_edge(edge)
                                             node_to_connect.deselect()
                                             node_to_connect = None
