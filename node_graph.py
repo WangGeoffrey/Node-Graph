@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from queue import PriorityQueue
 from typing import Dict, List, Set, Tuple
 import pygame
 import math
@@ -648,6 +649,45 @@ class DGraph(Graph):
         self.labeling.clear()
         self.drawG()
 
+    def shortest_path(self):
+        label = ['start', 'end']
+        self.select(label)
+        start_node = tuple(node for node in self.labeling if self.labeling[node] == 'start')[0]
+        end_node = tuple(node for node in self.labeling if self.labeling[node] == 'end')[0]
+        current_node = start_node
+        count = 0
+        edges = PriorityQueue()
+        for node in current_node.connectedN:
+            edge = self.get_edge((current_node, node))
+            edges.put((edge.get_weightE(), count, edge))
+            count = count + 1
+        dist = {current_node: 0}
+        visited = {current_node}
+        unvisited = set(self.nodesG).difference(visited)
+        labeling = {}
+        while not edges.empty():
+            if bool(unvisited):
+                cost, dummy, arc = edges.get()
+                leaving, entering = arc.connectingE
+                new_cost = dist[leaving] + cost
+                if entering in dist:
+                    if new_cost < dist[entering]:
+                        dist[entering] = new_cost
+                        labeling[entering] = leaving
+                else:
+                    dist[entering] = new_cost
+                    labeling[entering] = leaving
+                    for node in entering.connectedN:
+                        edge = self.get_edge((entering, node))
+                        edges.put((edge.get_weightE(), count, edge))
+                        count = count + 1
+                    unvisited.difference({entering})
+        current_node = end_node
+        while current_node != start_node:
+            self.get_edge((labeling[current_node], current_node)).active()
+            current_node = labeling[current_node]
+        return True
+
     def drawG(self):
         for edge in self.edgesG:
             edge.drawE()
@@ -1001,7 +1041,7 @@ def main():
         buttons1[5]
     ]
     buttons3 = [
-        Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//6, '1', lambda *args: None),
+        Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Shortest Path', lambda: graph.shortest_path()),
         Button2(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, '2', lambda *args: None),
         Button2(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, '3', lambda *args: None),
         buttons1[3],
