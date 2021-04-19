@@ -167,7 +167,7 @@ class Edge(ABC):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     run = False
-                    return False
+                    return True
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
                         run = False
@@ -187,7 +187,6 @@ class Edge(ABC):
             # for node in self.connectingE:
             #     node.drawN() #Missing numbering
             # pygame.display.update()
-        return True
 
     def distance(self) -> int:
         x1, y1 = self.edge[0]
@@ -440,7 +439,7 @@ class Graph(ABC):
         for edge in self.edgesG:
             edge.inactive()
 
-    def reset_edges(self):
+    def reset(self):
         for edge in self.edgesG:
             edge.default()
 
@@ -476,7 +475,7 @@ class UGraph(Graph):
     def MST(self): #Minimum Spanning Tree
         self.deselect_edges()
         if not (bool(self.nodesG) and self.is_connected_graph()):
-            return False
+            return True
         mst = set()
         trees = []
         nodes = set(self.nodesG)
@@ -505,7 +504,6 @@ class UGraph(Graph):
                     nodes = nodes.difference(linked)
         for edge in mst:
             edge.active()
-        return True
 
     def min_cover(self):
         exposed = self.max_matching()
@@ -513,7 +511,6 @@ class UGraph(Graph):
             for edge in node.edgesN:
                 edge.active()
                 break
-        return True
 
     def max_matching(self):
         self.deselect_edges()
@@ -535,7 +532,6 @@ class UGraph(Graph):
         for edge in matching:
             edge.active()
         # return exposed #For min cover
-        return True
 
     def augmenting_path(self, current: Node, matching: Set[Edge], exposed: Set[Node], considered: Set[Edge], path: Set[Edge], label: Dict[Node, bool]):
         for node in current.connectedN:
@@ -557,13 +553,12 @@ class UGraph(Graph):
     def hamiltonian_cycle(self):
         self.deselect_edges()
         if not bool(self.nodesG):
-            return False
+            return True
         start = self.nodesG[0]
         cycle = self.h_cycle(start, start, set(self.nodesG), {start}, set())
         if bool(cycle):
             for edge in cycle:
                 edge.active()
-        return True
 
     def h_cycle(self, start: Node, current: Node, nodes: Set[Node], visited: Set[Node], cycle: Set[Edge]):
         if len(cycle) == len(nodes)-1 and start in current.connectedN and len(cycle) > 1:
@@ -610,7 +605,7 @@ class DGraph(Graph):
         return None
 
     def select(self, label):
-        self.reset_labels()
+        self.reset()
         current_node = None
         labeled = 0
         run = True
@@ -618,7 +613,7 @@ class DGraph(Graph):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     run = False
-                    return False
+                    return True
                 pos = pygame.mouse.get_pos()
                 if bool(current_node):
                     if not in_range(pos, current_node.posN, SIZE):
@@ -643,7 +638,6 @@ class DGraph(Graph):
                 self.drawG()
         current_node.unhover()
         self.drawG()
-        return True
 
     def reset_labels(self):
         self.labeling.clear()
@@ -651,7 +645,8 @@ class DGraph(Graph):
 
     def shortest_path(self):
         label = ['start', 'end']
-        self.select(label)
+        if self.select(label):
+            return True
         start_node = tuple(node for node in self.labeling if self.labeling[node] == 'start')[0]
         end_node = tuple(node for node in self.labeling if self.labeling[node] == 'end')[0]
         current_node = start_node
@@ -686,7 +681,10 @@ class DGraph(Graph):
         while current_node != start_node:
             self.get_edge((labeling[current_node], current_node)).active()
             current_node = labeling[current_node]
-        return True
+
+    def reset(self):
+        super(DGraph, self).reset()
+        self.reset_labels()
 
     def drawG(self):
         for edge in self.edgesG:
@@ -794,7 +792,6 @@ class ButtonT(Button): #Toggle button
         self.toggle = not self.toggle
         self.textB, self.alt_textB = (self.alt_textB, self.textB)
         self.text_rectB, self.alt_text_rectB = (self.alt_text_rectB, self.text_rectB)
-        return True
 
 class Button1(Button):
 
@@ -820,7 +817,6 @@ class Button1(Button):
             self.deselect()
         else:
             self.select()
-        return True
 
 class Button2(Button):
 
@@ -1068,9 +1064,9 @@ def main():
                 if event.type == pygame.MOUSEBUTTONUP:
                     for button in buttons:
                         if button.rectB.collidepoint(event.pos):
-                            running = button.click()
+                            running = not button.click()
                             if buttons.index(button) == len(buttons)-1:
-                                graph.reset_edges()
+                                graph.reset()
                                 buttons = buttons1
             else:
                 if event.type == pygame.MOUSEBUTTONUP:
@@ -1171,7 +1167,7 @@ def main():
                             node_to_move = current_node
                         elif buttons1[3].is_selected():
                             if bool(current_edge):
-                                running = current_edge.input_weightE(graph)
+                                running = not current_edge.input_weightE(graph)
         graph.drawG()
         for button in buttons:
             button.unhover()
