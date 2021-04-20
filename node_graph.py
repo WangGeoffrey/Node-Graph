@@ -649,36 +649,32 @@ class DGraph(Graph):
             return True
         start_node = tuple(node for node in self.labeling if self.labeling[node] == 'start')[0]
         end_node = tuple(node for node in self.labeling if self.labeling[node] == 'end')[0]
-        current_node = start_node
         count = 0
         edges = PriorityQueue()
-        for node in current_node.connectedN:
-            edge = self.get_edge((current_node, node))
+        for node in start_node.connectedN:
+            edge = self.get_edge((start_node, node))
             edges.put((edge.get_weightE(), count, edge))
             count = count + 1
-        dist = {current_node: 0}
-        visited = {current_node}
-        unvisited = set(self.nodesG).difference(visited)
+        dist = {start_node: 0}
         labeling = {}
         while not edges.empty():
-            if bool(unvisited):
-                cost, dummy, arc = edges.get()
-                leaving, entering = arc.connectingE
-                new_cost = dist[leaving] + cost
-                if entering in dist:
-                    if new_cost < dist[entering]:
-                        dist[entering] = new_cost
-                        labeling[entering] = leaving
-                else:
-                    dist[entering] = new_cost
-                    labeling[entering] = leaving
-                    for node in entering.connectedN:
-                        edge = self.get_edge((entering, node))
-                        edges.put((edge.get_weightE(), count, edge))
-                        count = count + 1
-                    unvisited.difference({entering})
+            cost, dummy, arc = edges.get()
+            leaving, entering = arc.connectingE
+            new_cost = dist[leaving] + cost
+            if entering in dist:
+                if new_cost >= dist[entering]:
+                    continue
+            else:
+                for node in entering.connectedN:
+                    edge = self.get_edge((entering, node))
+                    edges.put((edge.get_weightE(), count, edge))
+                    count = count + 1
+            dist[entering] = new_cost
+            labeling[entering] = leaving
         current_node = end_node
         while current_node != start_node:
+            if not current_node in labeling:
+                break
             self.get_edge((labeling[current_node], current_node)).active()
             current_node = labeling[current_node]
 
