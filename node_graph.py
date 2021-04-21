@@ -690,7 +690,7 @@ class DGraph(Graph):
         flow = {} #(flow, opposite flow, capacity of edge)
         for edge in self.edgesG:
             leaving, entering = edge.connectingE
-            flow[(leaving, entering)] = (0, 0, edge.get_weight())
+            flow[(leaving, entering)] = (0, 0, edge.get_weightE())
             if not (entering, leaving) in flow:
                 flow[entering, leaving] = (0, 0, 0)
         while True:
@@ -699,7 +699,7 @@ class DGraph(Graph):
                 break
             min_cap = float('inf')
             for tup in path:
-                cap = flow[tup][0] - flow[tup][2]
+                cap = flow[tup][2] - flow[tup][0]
                 min_cap = min(min_cap, cap)
             for tup in path:
                 f, opposite, capacity = flow[tup]
@@ -707,8 +707,18 @@ class DGraph(Graph):
                 f, opposite, capacity = flow[(tup[1], tup[0])]
                 flow[(tup[1], tup[0])] = (f, opposite + min_cap, capacity)
 
-    def augmenting_path(self, source, sink, flow, visited, aug_path):
-        return aug_path
+    def augmenting_path(self, current: Node, sink: Node, flow: Dict, visited: Set, aug_path: List):
+        if sink in visited:
+            return aug_path
+        for edge in current.edgesN:
+            leaving, entering = edge.connectingE
+            if not entering in visited:
+                f, opposite, capacity = flow[edge.connectingE]
+                if opposite + capacity - f > 0:
+                    path = self.augmenting_path(entering, sink, flow, visited.union({entering}), aug_path + [edge.connectingE])
+                    if bool(path):
+                        return path
+        return None
 
     def reset(self):
         super(DGraph, self).reset()
