@@ -678,6 +678,38 @@ class DGraph(Graph):
             self.get_edge((labeling[current_node], current_node)).active()
             current_node = labeling[current_node]
 
+    def max_flow(self):
+        label = ['s', 't']
+        self.select(label)
+        source = tuple(node for node in self.labeling if self.labeling[node] == 's')[0]
+        sink = tuple(node for node in self.labeling if self.labeling[node] == 't')[0]
+        while len(source.connectedN) != len(source.edgesN) or bool(sink.connectedN):
+            self.select(label)
+            source = tuple(node for node in self.labeling if self.labeling[node] == 's')[0]
+            sink = tuple(node for node in self.labeling if self.labeling[node] == 't')[0]
+        flow = {} #(flow, opposite flow, capacity of edge)
+        for edge in self.edgesG:
+            leaving, entering = edge.connectingE
+            flow[(leaving, entering)] = (0, 0, edge.get_weight())
+            if not (entering, leaving) in flow:
+                flow[entering, leaving] = (0, 0, 0)
+        while True:
+            path = self.augmenting_path(source, sink, flow, {source}, [])
+            if not bool(path):
+                break
+            min_cap = float('inf')
+            for tup in path:
+                cap = flow[tup][0] - flow[tup][2]
+                min_cap = min(min_cap, cap)
+            for tup in path:
+                f, opposite, capacity = flow[tup]
+                flow[tup] = (max(f + min_cap - opposite, 0), max(opposite - min_cap, 0), capacity)
+                f, opposite, capacity = flow[(tup[1], tup[0])]
+                flow[(tup[1], tup[0])] = (f, opposite + min_cap, capacity)
+
+    def augmenting_path(self, source, sink, flow, visited, aug_path):
+        return aug_path
+
     def reset(self):
         super(DGraph, self).reset()
         self.reset_labels()
