@@ -347,6 +347,12 @@ class DEdge(Edge):
             self.edge = self.edge_pos()
         self.update_textE()
 
+    def set_custom(self, text):
+        self.textE = font.render(text, True, BLACK)
+        x1, y1 = self.edge[0]
+        x2, y2 = self.edge[1]
+        self.text_rectE = self.textE.get_rect(center=(x1+self.text_pos*(x2-x1), y1+self.text_pos*(y2-y1)))
+
     def drawE(self):
         pygame.draw.line(WIN, self.colorE, self.edge[0], self.edge[1])
         pygame.draw.circle(WIN, self.colorE, self.head_pos(), 5)
@@ -706,6 +712,11 @@ class DGraph(Graph):
                 flow[tup] = (max(f + min_cap - opposite, 0), max(opposite - min_cap, 0), capacity)
                 f, opposite, capacity = flow[(tup[1], tup[0])]
                 flow[(tup[1], tup[0])] = (f, opposite + min_cap, capacity)
+        for pair in flow:
+            edge = self.get_edge(pair)
+            if bool(edge):
+                edge.eraseE()
+                edge.set_custom(str(flow[pair][0])+'/'+str(flow[pair][2]))
 
     def augmenting_path(self, current: Node, sink: Node, flow: Dict, visited: Set, aug_path: List):
         if sink in visited:
@@ -723,6 +734,8 @@ class DGraph(Graph):
     def reset(self):
         super(DGraph, self).reset()
         self.reset_labels()
+        for edge in self.edgesG:
+            edge.moveE()
 
     def drawG(self):
         for edge in self.edgesG:
@@ -1076,7 +1089,7 @@ def main():
     ]
     buttons3 = [
         Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Shortest Path', lambda: graph.shortest_path()),
-        Button2(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, '2', lambda *args: None),
+        Button2(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Max Flow', lambda: graph.max_flow()),
         Button2(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, '3', lambda *args: None),
         buttons1[3],
         buttons1[4],
