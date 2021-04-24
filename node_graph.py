@@ -284,7 +284,7 @@ class DEdge(Edge):
         self.weightE = '1'
         self.connectingE = (leaving_node, entering_node)
         self.edge = (leaving_node.posN, entering_node.posN)
-        self.opposite = None #Edge in opposite direction (if one exists)
+        self.parallel = None #Parallel edge (if one exists)
         self.text_pos = 1/2
         self.update_textE()
 
@@ -297,13 +297,13 @@ class DEdge(Edge):
         self._connectingE = nodes
 
     @property
-    def opposite(self) -> DEdge:
-        return self._opposite
+    def parallel(self) -> DEdge:
+        return self._parallel
 
-    @opposite.setter
-    def opposite(self, opposite: DEdge) -> None:
-        self._opposite = opposite
-        if bool(opposite):
+    @parallel.setter
+    def parallel(self, parallel: DEdge) -> None:
+        self._parallel = parallel
+        if bool(parallel):
             self.text_pos = 4/7
         else:
             self.text_pos = 1/2
@@ -341,7 +341,7 @@ class DEdge(Edge):
 
     def moveE(self):
         self.eraseE()
-        if not bool(self.opposite):
+        if not bool(self.parallel):
             self.edge = tuple(node.posN for node in self.connectingE)
         else:
             self.edge = self.edge_pos()
@@ -368,9 +368,9 @@ class DEdge(Edge):
         self.eraseE()
         for node in self.connectingE:
             node.detach_edge(self)
-        if bool(self.opposite):
-            self.opposite.opposite = None
-            self.opposite.moveE()
+        if bool(self.parallel):
+            self.parallel.parallel = None
+            self.parallel.moveE()
 
 class Graph(ABC):
 
@@ -396,7 +396,7 @@ class Graph(ABC):
         self._nodesG = nodes
 
     @property
-    def edgesG(self) -> list:
+    def edgesG(self) -> List[Edge]:
         return self._edgesG.copy()
 
     @edgesG.setter
@@ -586,8 +586,8 @@ class DGraph(Graph):
     def add_edge(self, edge: Edge):
         for e in self._edgesG:
             if set(e.connectingE) == set(edge.connectingE):
-                e.opposite = edge
-                edge.opposite = e
+                e.parallel = edge
+                edge.parallel = e
                 e.moveE()
                 edge.moveE()
                 break
@@ -693,40 +693,41 @@ class DGraph(Graph):
             self.select(label)
             source = tuple(node for node in self.labeling if self.labeling[node] == 's')[0]
             sink = tuple(node for node in self.labeling if self.labeling[node] == 't')[0]
-        flow = {} #(flow, opposite flow, capacity of edge)
+        flow = {} #{(leaving node, entering node): (forward flow, backward flow, capacity of arc)}
         for edge in self.edgesG:
-            leaving, entering = edge.connectingE
-            flow[(leaving, entering)] = (0, 0, edge.get_weightE())
-            if not (entering, leaving) in flow:
-                flow[entering, leaving] = (0, 0, 0)
-        while True:
+            arc = edge.connectingE
+            flow[arc] = (0, 0, edge.get_weightE())
+            arc = (arc[1], arc[0])
+            if not arc in flow:
+                flow[arc] = (0, 0, 0)
+        path = self.augmenting_path(source, sink, flow, {source}, [])
+        while bool(path):
+            path_flow = float('inf')
+            for arc in path:
+                spare_capacity = flow[arc][2] - flow[arc][0]
+                path_flow = min(path_flow, spare_capacity)
+            for arc in path:
+                f_flow, b_flow, capacity = flow[arc]
+                flow[arc] = (max(f_flow + path_flow - b_flow, 0), max(b_flow - path_flow, 0), capacity)
+                arc = (arc[1], arc[0])
+                f_flow, b_flow, capacity = flow[arc]
+                flow[arc] = (max(f_flow - path_flow, 0), max(b_flow + path_flow - f_flow, 0), capacity)
             path = self.augmenting_path(source, sink, flow, {source}, [])
-            if not bool(path):
-                break
-            min_cap = float('inf')
-            for tup in path:
-                cap = flow[tup][2] - flow[tup][0]
-                min_cap = min(min_cap, cap)
-            for tup in path:
-                f, opposite, capacity = flow[tup]
-                flow[tup] = (max(f + min_cap - opposite, 0), max(opposite - min_cap, 0), capacity)
-                f, opposite, capacity = flow[(tup[1], tup[0])]
-                flow[(tup[1], tup[0])] = (f, opposite + min_cap, capacity)
-        for pair in flow:
-            edge = self.get_edge(pair)
+        for arc in flow:
+            edge = self.get_edge(arc)
             if bool(edge):
                 edge.eraseE()
-                edge.set_custom(str(flow[pair][0])+'/'+str(flow[pair][2]))
+                edge.set_custom(str(flow[arc][0])+'/'+str(flow[arc][2]))
 
     def augmenting_path(self, current: Node, sink: Node, flow: Dict, visited: Set, aug_path: List):
         if sink in visited:
             return aug_path
         for edge in current.edgesN:
-            leaving, entering = edge.connectingE
-            if not entering in visited:
-                f, opposite, capacity = flow[edge.connectingE]
-                if opposite + capacity - f > 0:
-                    path = self.augmenting_path(entering, sink, flow, visited.union({entering}), aug_path + [edge.connectingE])
+            arc = edge.connectingE
+            if not arc[1] in visited:
+                f_flow, b_flow, capacity = flow[arc]
+                if b_flow + capacity - f_flow > 0:
+                    path = self.augmenting_path(arc[1], sink, flow, visited.union({arc[1]}), aug_path + [arc])
                     if bool(path):
                         return path
         return None
