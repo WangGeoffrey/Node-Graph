@@ -704,14 +704,14 @@ class DGraph(Graph):
         while bool(path):
             path_flow = float('inf')
             for arc in path:
-                spare_capacity = flow[arc][2] - flow[arc][0]
+                spare_capacity = flow[arc][2] + flow[arc][1] - flow[arc][0]
                 path_flow = min(path_flow, spare_capacity)
             for arc in path:
                 f_flow, b_flow, capacity = flow[arc]
-                flow[arc] = (max(f_flow + path_flow - b_flow, 0), max(b_flow - path_flow, 0), capacity)
+                f_flow, b_flow = max(f_flow + path_flow - b_flow, 0), max(b_flow - path_flow, 0)
+                flow[arc] = (f_flow, b_flow, capacity)
                 arc = (arc[1], arc[0])
-                f_flow, b_flow, capacity = flow[arc]
-                flow[arc] = (max(f_flow - path_flow, 0), max(b_flow + path_flow - f_flow, 0), capacity)
+                flow[arc] = (b_flow, f_flow, flow[arc][2])
             path = self.augmenting_path(source, sink, flow, {source}, [])
         for arc in flow:
             edge = self.get_edge(arc)
@@ -724,12 +724,15 @@ class DGraph(Graph):
             return aug_path
         for edge in current.edgesN:
             arc = edge.connectingE
-            if not arc[1] in visited:
-                f_flow, b_flow, capacity = flow[arc]
-                if b_flow + capacity - f_flow > 0:
-                    path = self.augmenting_path(arc[1], sink, flow, visited.union({arc[1]}), aug_path + [arc])
-                    if bool(path):
-                        return path
+            if arc[1] in visited:
+                if bool(edge.parallel) or arc[0] in visited:
+                    continue
+                arc = (arc[1], arc[0])
+            f_flow, b_flow, capacity = flow[arc]
+            if b_flow + capacity - f_flow > 0:
+                path = self.augmenting_path(arc[1], sink, flow, visited.union({arc[1]}), aug_path + [arc])
+                if bool(path):
+                    return path
         return None
 
     def reset(self):
