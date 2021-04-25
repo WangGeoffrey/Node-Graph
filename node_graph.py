@@ -31,6 +31,7 @@ class Node:
         self.posN = pos
         self.edgesN = set()
         self.connectedN = set()
+        self.active = False
 
     @property
     def colorN(self) -> Tuple:
@@ -96,7 +97,11 @@ class Node:
         self.posN = pos
 
     def drawN(self):
-        pygame.draw.circle(WIN, self.colorN, self.posN, SIZE)
+        if self.active:
+            pygame.draw.circle(WIN, RED, self.posN, SIZE)
+            pygame.draw.circle(WIN, self.colorN, self.posN, SIZE - 2)
+        else:
+            pygame.draw.circle(WIN, self.colorN, self.posN, SIZE)
 
     def eraseN(self):
         pygame.draw.circle(WIN, WHITE, self.posN, SIZE)
@@ -700,8 +705,8 @@ class DGraph(Graph):
             arc = (arc[1], arc[0])
             if not arc in flow:
                 flow[arc] = (0, 0, 0)
-        path = self.augmenting_path(source, sink, flow, {source}, [])
-        while bool(path):
+        path = self.augmenting_path(source, sink, flow, {source}, [], {source})
+        while type(path) == list:
             path_flow = float('inf')
             for arc in path:
                 spare_capacity = flow[arc][2] + flow[arc][1] - flow[arc][0]
@@ -712,14 +717,16 @@ class DGraph(Graph):
                 flow[arc] = (f_flow, b_flow, capacity)
                 arc = (arc[1], arc[0])
                 flow[arc] = (b_flow, f_flow, flow[arc][2])
-            path = self.augmenting_path(source, sink, flow, {source}, [])
+            path = self.augmenting_path(source, sink, flow, {source}, [], {source})
+        for node in path:
+            node.active = True
         for arc in flow:
             edge = self.get_edge(arc)
             if bool(edge):
                 edge.eraseE()
                 edge.set_custom(str(flow[arc][0])+'/'+str(flow[arc][2]))
 
-    def augmenting_path(self, current: Node, sink: Node, flow: Dict, visited: Set, aug_path: List):
+    def augmenting_path(self, current: Node, sink: Node, flow: Dict, visited: Set, aug_path: List, cut: Set):
         if sink in visited:
             return aug_path
         for edge in current.edgesN:
@@ -730,14 +737,17 @@ class DGraph(Graph):
                 arc = (arc[1], arc[0])
             f_flow, b_flow, capacity = flow[arc]
             if b_flow + capacity - f_flow > 0:
-                path = self.augmenting_path(arc[1], sink, flow, visited.union({arc[1]}), aug_path + [arc])
-                if bool(path):
+                cut.add(arc[1])
+                path = self.augmenting_path(arc[1], sink, flow, visited.union({arc[1]}), aug_path + [arc], cut)
+                if type(path) == list:
                     return path
-        return None
+        return cut
 
     def reset(self):
         super(DGraph, self).reset()
         self.reset_labels()
+        for node in self.nodesG:
+            node.active = False
         for edge in self.edgesG:
             edge.moveE()
 
