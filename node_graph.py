@@ -658,40 +658,38 @@ class DGraph(Graph):
         label = ['start', 'end']
         if self.select(label):
             return True
-        start_node = tuple(node for node in self.labeling if self.labeling[node] == 'start')[0]
-        end_node = tuple(node for node in self.labeling if self.labeling[node] == 'end')[0]
-        count = 0
+        start = tuple(node for node in self.labeling if self.labeling[node] == 'start')[0]
+        end = tuple(node for node in self.labeling if self.labeling[node] == 'end')[0]
+        priority = 0
         edges = PriorityQueue()
-        for node in start_node.connectedN:
-            edge = self.get_edge((start_node, node))
-            edges.put((edge.get_weightE(), count, edge))
-            count = count + 1
-        dist = {start_node: 0}
+        for node in start.connectedN:
+            edge = self.get_edge((start, node))
+            edges.put((edge.get_weightE(), priority, edge))
+            priority = priority + 1
+        dist = {start: 0}
         labeling = {}
-        while not edges.empty():
+        entering = None
+        while not edges.empty() and entering != end:
             cost, dummy, arc = edges.get()
             leaving, entering = arc.connectingE
-            new_cost = dist[leaving] + cost
             if entering in dist:
-                if new_cost >= dist[entering]:
-                    continue
-            else:
-                for node in entering.connectedN:
+                continue
+            for node in entering.connectedN:
+                if node not in dist:
                     edge = self.get_edge((entering, node))
-                    edges.put((edge.get_weightE(), count, edge))
-                    count = count + 1
-            dist[entering] = new_cost
+                    edges.put((cost + edge.get_weightE(), priority, edge))
+                    priority = priority + 1
+            dist[entering] = cost
             labeling[entering] = leaving
-        current_node = end_node
-        while current_node != start_node:
-            if not current_node in labeling:
-                break
-            self.get_edge((labeling[current_node], current_node)).active()
-            current_node = labeling[current_node]
+        if end in dist:
+            while end != start:
+                self.get_edge((labeling[end], end)).active()
+                end = labeling[end]
 
     def max_flow(self):
         label = ['s', 't']
-        self.select(label)
+        if self.select(label):
+            return True
         source = tuple(node for node in self.labeling if self.labeling[node] == 's')[0]
         sink = tuple(node for node in self.labeling if self.labeling[node] == 't')[0]
         while len(source.connectedN) != len(source.edgesN) or bool(sink.connectedN):
