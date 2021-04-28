@@ -486,7 +486,7 @@ class UGraph(Graph):
     def MST(self): #Minimum Spanning Tree
         self.deselect_edges()
         if not (bool(self.nodesG) and self.is_connected_graph()):
-            return True
+            return False
         mst = set()
         trees = []
         nodes = set(self.nodesG)
@@ -564,7 +564,7 @@ class UGraph(Graph):
     def hamiltonian_cycle(self):
         self.deselect_edges()
         if not bool(self.nodesG):
-            return True
+            return False
         start = self.nodesG[0]
         cycle = self.h_cycle(start, start, set(self.nodesG), {start}, set())
         if bool(cycle):
@@ -616,6 +616,8 @@ class DGraph(Graph):
         return None
 
     def select(self, label):
+        if len(self.nodesG) < len(label):
+            return 1
         self.reset()
         current_node = None
         labeled = 0
@@ -624,7 +626,7 @@ class DGraph(Graph):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     run = False
-                    return True
+                    return 2
                 pos = pygame.mouse.get_pos()
                 if bool(current_node):
                     if not in_range(pos, current_node.posN, SIZE):
@@ -646,9 +648,14 @@ class DGraph(Graph):
                             labeled = labeled + 1
                             if labeled == len(label):
                                 run = False
+                    if pos[0] > WIDTH:
+                        self.labeling.clear()
+                        self.reset()
+                        return 1
                 self.drawG()
         current_node.unhover()
         self.drawG()
+        return 0
 
     def reset_labels(self):
         self.labeling.clear()
@@ -656,8 +663,9 @@ class DGraph(Graph):
 
     def shortest_path(self):
         label = ['start', 'end']
-        if self.select(label):
-            return True
+        exit = self.select(label)
+        if exit:
+            return exit-1
         start = tuple(node for node in self.labeling if self.labeling[node] == 'start')[0]
         end = tuple(node for node in self.labeling if self.labeling[node] == 'end')[0]
         priority = 0
@@ -688,8 +696,9 @@ class DGraph(Graph):
 
     def max_flow(self):
         label = ['s', 't']
-        if self.select(label):
-            return True
+        exit = self.select(label)
+        if exit:
+            return exit-1
         source = tuple(node for node in self.labeling if self.labeling[node] == 's')[0]
         sink = tuple(node for node in self.labeling if self.labeling[node] == 't')[0]
         while len(source.connectedN) != len(source.edgesN) or bool(sink.connectedN):
@@ -1111,6 +1120,9 @@ def main():
     alt_buttons = buttons2
     graph = UGraph()
     directed = False
+    text = font.render('Undirected Graph', True, BLACK)
+    text_rect = text.get_rect(center=(WIDTH-60, 10))
+    WIN.blit(text, text_rect)
     prev_pos = (-1, -1)
     current_node = None
     current_edge = None
@@ -1157,9 +1169,12 @@ def main():
                     if directed:
                         graph = UGraph()
                         alt_buttons = buttons2
+                        text = font.render('Undirected Graph', True, BLACK)
                     else:
                         graph = DGraph()
                         alt_buttons = buttons3
+                        text = font.render('Directed Graph', True, BLACK)
+                    WIN.blit(text, text_rect)
                     directed = not directed
                 if not bool(node_to_move):
                     if bool(current_node):
