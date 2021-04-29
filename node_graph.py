@@ -459,7 +459,7 @@ class Graph(ABC):
             edge.drawE()
         for node in self.nodesG:
             node.drawN()
-            text = font.render(str(self.nodesG.index(node)+1) , True , BLACK)
+            text = font.render(str(self.nodesG.index(node)+1), True, BLACK)
             text_rect = text.get_rect(center=node.posN)
             WIN.blit(text, text_rect)
         pygame.display.update()
@@ -485,36 +485,35 @@ class UGraph(Graph):
 
     def MST(self): #Minimum Spanning Tree
         self.deselect_edges()
-        if not (bool(self.nodesG) and self.is_connected_graph()):
-            return False
-        mst = set()
-        trees = []
-        nodes = set(self.nodesG)
-        edges = self.edgesG
-        edges.sort(key=lambda x: x.get_weightE())
-        while len(mst) < len(self.nodesG)-1:
-            min = edges.pop(0)
-            linked = min.connectingE
-            index = -1
-            if linked.issubset(nodes):
-                mst.add(min)
-                nodes = nodes.difference(linked)
-                trees.append(linked)
-            else:
-                for tree in trees:
-                    if linked.issubset(tree):
-                        break
-                    elif bool(linked.intersection(tree)):
-                        if index+1:
-                            trees[trees.index(tree)] = tree.union(trees.pop(index))
-                            break
-                        mst.add(min)
-                        index = trees.index(tree)
-                        trees[index] = tree.union(linked)
-                else:
+        if bool(self.nodesG) and self.is_connected_graph():
+            mst = set()
+            trees = []
+            nodes = set(self.nodesG)
+            edges = self.edgesG
+            edges.sort(key=lambda x: x.get_weightE())
+            while len(mst) < len(self.nodesG)-1:
+                min = edges.pop(0)
+                linked = min.connectingE
+                index = -1
+                if linked.issubset(nodes):
+                    mst.add(min)
                     nodes = nodes.difference(linked)
-        for edge in mst:
-            edge.active()
+                    trees.append(linked)
+                else:
+                    for tree in trees:
+                        if linked.issubset(tree):
+                            break
+                        elif bool(linked.intersection(tree)):
+                            if index+1:
+                                trees[trees.index(tree)] = tree.union(trees.pop(index))
+                                break
+                            mst.add(min)
+                            index = trees.index(tree)
+                            trees[index] = tree.union(linked)
+                    else:
+                        nodes = nodes.difference(linked)
+            for edge in mst:
+                edge.active()
 
     def min_cover(self):
         exposed = self.max_matching()
@@ -563,13 +562,12 @@ class UGraph(Graph):
 
     def hamiltonian_cycle(self):
         self.deselect_edges()
-        if not bool(self.nodesG):
-            return False
-        start = self.nodesG[0]
-        cycle = self.h_cycle(start, start, set(self.nodesG), {start}, set())
-        if bool(cycle):
-            for edge in cycle:
-                edge.active()
+        if bool(self.nodesG):
+            start = self.nodesG[0]
+            cycle = self.h_cycle(start, start, set(self.nodesG), {start}, set())
+            if bool(cycle):
+                for edge in cycle:
+                    edge.active()
 
     def h_cycle(self, start: Node, current: Node, nodes: Set[Node], visited: Set[Node], cycle: Set[Edge]):
         if len(cycle) == len(nodes)-1 and start in current.connectedN and len(cycle) > 1:
@@ -621,18 +619,16 @@ class DGraph(Graph):
         self.reset()
         current_node = None
         labeled = 0
-        run = True
-        while run:
+        while labeled < len(label):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    run = False
                     return 2
                 pos = pygame.mouse.get_pos()
                 if bool(current_node):
                     if not in_range(pos, current_node.posN, SIZE):
                         current_node.unhover()
                         current_node = None
-                if not (bool(current_node)):
+                if not bool(current_node):
                     for node in self.nodesG:
                         if in_range(pos, node.posN, SIZE):
                             node.hover()
@@ -646,8 +642,6 @@ class DGraph(Graph):
                         else:
                             self.labeling[current_node] = label[labeled]
                             labeled = labeled + 1
-                            if labeled == len(label):
-                                run = False
                     if pos[0] > WIDTH:
                         self.labeling.clear()
                         self.reset()
@@ -655,7 +649,6 @@ class DGraph(Graph):
                 self.drawG()
         current_node.unhover()
         self.drawG()
-        return 0
 
     def reset_labels(self):
         self.labeling.clear()
@@ -666,8 +659,8 @@ class DGraph(Graph):
         exit = self.select(label)
         if exit:
             return exit-1
-        start = tuple(node for node in self.labeling if self.labeling[node] == 'start')[0]
-        end = tuple(node for node in self.labeling if self.labeling[node] == 'end')[0]
+        start = list(self.labeling.keys())[list(self.labeling.values()).index(label[0])]
+        end = list(self.labeling.keys())[list(self.labeling.values()).index(label[1])]
         priority = 0
         edges = PriorityQueue()
         for node in start.connectedN:
@@ -699,12 +692,12 @@ class DGraph(Graph):
         exit = self.select(label)
         if exit:
             return exit-1
-        source = tuple(node for node in self.labeling if self.labeling[node] == 's')[0]
-        sink = tuple(node for node in self.labeling if self.labeling[node] == 't')[0]
+        source = list(self.labeling.keys())[list(self.labeling.values()).index(label[0])]
+        sink = list(self.labeling.keys())[list(self.labeling.values()).index(label[1])]
         while len(source.connectedN) != len(source.edgesN) or bool(sink.connectedN):
             self.select(label)
-            source = tuple(node for node in self.labeling if self.labeling[node] == 's')[0]
-            sink = tuple(node for node in self.labeling if self.labeling[node] == 't')[0]
+            source = list(self.labeling.keys())[list(self.labeling.values()).index(label[0])]
+            sink = list(self.labeling.keys())[list(self.labeling.values()).index(label[1])]
         flow = {} #{(leaving node, entering node): (forward flow, backward flow, capacity of arc)}
         for edge in self.edgesG:
             arc = edge.connectingE
