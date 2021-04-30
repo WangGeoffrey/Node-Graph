@@ -515,6 +515,26 @@ class UGraph(Graph):
             for edge in mst:
                 edge.active()
 
+    def hamiltonian_cycle(self):
+        self.deselect_edges()
+        if bool(self.nodesG):
+            start = self.nodesG[0]
+            cycle = self.h_cycle(start, start, set(self.nodesG), {start}, set())
+            if bool(cycle):
+                for edge in cycle:
+                    edge.active()
+
+    def h_cycle(self, start: Node, current: Node, nodes: Set[Node], visited: Set[Node], cycle: Set[Edge]):
+        if len(cycle) == len(nodes)-1 and start in current.connectedN and len(cycle) > 1:
+            return cycle.union({self.get_edge({current, start})})
+        else:
+            for node in current.connectedN:
+                if not node in visited:
+                    temp = self.h_cycle(start, node, nodes, visited.union({node}), cycle.union({self.get_edge({current, node})}))
+                    if bool(temp):
+                        return temp
+        return None
+
     def min_cover(self):
         exposed = self.max_matching()
         for node in exposed:
@@ -558,26 +578,6 @@ class UGraph(Graph):
                     result = self.augmenting_path(node, matching, exposed, considered.union({edge}), path.union({edge}), label)
                     if bool(result):
                         return result
-        return None
-
-    def hamiltonian_cycle(self):
-        self.deselect_edges()
-        if bool(self.nodesG):
-            start = self.nodesG[0]
-            cycle = self.h_cycle(start, start, set(self.nodesG), {start}, set())
-            if bool(cycle):
-                for edge in cycle:
-                    edge.active()
-
-    def h_cycle(self, start: Node, current: Node, nodes: Set[Node], visited: Set[Node], cycle: Set[Edge]):
-        if len(cycle) == len(nodes)-1 and start in current.connectedN and len(cycle) > 1:
-            return cycle.union({self.get_edge({current, start})})
-        else:
-            for node in current.connectedN:
-                if not node in visited:
-                    temp = self.h_cycle(start, node, nodes, visited.union({node}), cycle.union({self.get_edge({current, node})}))
-                    if bool(temp):
-                        return temp
         return None
 
 class DGraph(Graph):
@@ -648,10 +648,6 @@ class DGraph(Graph):
                         return 1
                 self.drawG()
         current_node.unhover()
-        self.drawG()
-
-    def reset_labels(self):
-        self.labeling.clear()
         self.drawG()
 
     def shortest_path(self):
@@ -743,6 +739,10 @@ class DGraph(Graph):
                     return path
         return cut
 
+    def reset_labels(self):
+        self.labeling.clear()
+        self.drawG()
+
     def reset(self):
         super(DGraph, self).reset()
         self.reset_labels()
@@ -813,6 +813,12 @@ class Button: #Option button
     def text_rectB(self, text_rect: Rect) -> None:
         self._text_rectB = text_rect
 
+    def hover(self):
+        pass
+
+    def unhover(self):
+        pass
+
     def click(self):
         pass
 
@@ -860,9 +866,6 @@ class ButtonT(Button): #Toggle button
 
 class Button1(Button):
 
-    def is_selected(self):
-        return self.colorB == GREY
-
     def hover(self):
         if not self.is_selected():
             self.colorB = LIGHTGREY
@@ -876,6 +879,9 @@ class Button1(Button):
 
     def deselect(self):
         self.colorB = WHITE
+
+    def is_selected(self):
+        return self.colorB == GREY
 
     def click(self):
         if self.is_selected():
@@ -1094,9 +1100,9 @@ def main():
         Button3(WIDTH+1, 5*WIDTH//6, SIDE_BAR, WIDTH//6, 'View', 'Return')
     ]
     buttons2 = [
-        Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Hamilton Cycle', lambda: graph.hamiltonian_cycle()),
-        Button2(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Max Matching', lambda: graph.max_matching()),
-        Button2(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, 'MST', lambda: graph.MST()),
+        Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'MST', lambda: graph.MST()),
+        Button2(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Hamilton Cycle', lambda: graph.hamiltonian_cycle()),
+        Button2(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, 'Max Matching', lambda: graph.max_matching()),
         buttons1[3],
         buttons1[4],
         buttons1[5]
