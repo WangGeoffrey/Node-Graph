@@ -166,8 +166,20 @@ class Edge(ABC):
     def weightE(self, input_weight: str) -> None:
         self._weightE = input_weight
 
-    def input_weightE(self, graph: Graph) -> None:
+    @property
+    def costE(self) -> str:
+        return self._costE
+
+    @costE.setter
+    def costE(self, input_cost: str) -> None:
+        self._costE = input_cost
+
+    def input_valueE(self, graph: Graph) -> None:
         run = True
+        if SHOW_WEIGHTS:
+            value = self.weightE
+        else:
+            value = self.costE
         while run:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -177,15 +189,19 @@ class Edge(ABC):
                     if event.key == pygame.K_RETURN:
                         run = False
                     elif event.key == pygame.K_BACKSPACE:
-                        self.weightE = self.weightE[:-1]
-                        if not bool(self.weightE):
-                            self.weightE = '0'
+                        value = value[:-1]
+                        if not bool(value):
+                            value = '0'
                     else:
                         if event.unicode.isnumeric():
-                            if int(self.weightE):
-                                self.weightE += event.unicode
+                            if int(value):
+                                value += event.unicode
                             else:
-                                self.weightE = event.unicode
+                                value = event.unicode
+            if SHOW_WEIGHTS:
+                self.weightE = value
+            else:
+                self.costE = value
             self.moveE()
             graph.drawG()
             # self.drawE()
@@ -201,6 +217,12 @@ class Edge(ABC):
     def get_weightE(self) -> int:
         if CUSTOM_WEIGHTS:
             return int(self.weightE)
+        else:
+            return self.distance()
+
+    def get_costE(self) -> int:
+        if CUSTOM_WEIGHTS:
+            return int(self.costE)
         else:
             return self.distance()
 
@@ -222,7 +244,10 @@ class Edge(ABC):
 
     def update_textE(self):
         if CUSTOM_WEIGHTS:
-            self.textE = font.render(self.weightE, True, BLACK)
+            if SHOW_WEIGHTS:
+                self.textE = font.render(self.weightE, True, BLACK)
+            else:
+                self.textE = font.render(self.costE, True, BLACK)
         else:
             self.textE = font.render(str(self.distance()), True, BLACK)
         x1, y1 = self.edge[0]
@@ -251,6 +276,7 @@ class UEdge(Edge):
         self.colorE = BLACK
         self.connectingE = {node1, node2}
         self.edge = (node1.posN, node2.posN)
+        self.costE = '1'
         self.weightE = '1'
         self.text_pos = 1/2
         self.update_textE()
@@ -270,8 +296,7 @@ class UEdge(Edge):
 
     def drawE(self):
         pygame.draw.line(WIN, self.colorE, self.edge[0], self.edge[1])
-        if SHOW_WEIGHTS:
-            WIN.blit(self.textE, self.text_rectE)
+        WIN.blit(self.textE, self.text_rectE)
 
     def eraseE(self):
         pygame.draw.line(WIN, WHITE, self.edge[0], self.edge[1])
@@ -286,6 +311,7 @@ class DEdge(Edge):
 
     def __init__(self, leaving_node: Node, entering_node: Node):
         self.colorE = BLACK
+        self.costE = '1'
         self.weightE = '1'
         self.connectingE = (leaving_node, entering_node)
         self.edge = (leaving_node.posN, entering_node.posN)
@@ -361,8 +387,7 @@ class DEdge(Edge):
     def drawE(self):
         pygame.draw.line(WIN, self.colorE, self.edge[0], self.edge[1])
         pygame.draw.circle(WIN, self.colorE, self.head_pos(), 5)
-        if SHOW_WEIGHTS:
-            WIN.blit(self.textE, self.text_rectE)
+        WIN.blit(self.textE, self.text_rectE)
 
     def eraseE(self):
         pygame.draw.line(WIN, WHITE, self.edge[0], self.edge[1])
@@ -412,7 +437,7 @@ class Graph(ABC):
         global SHOW_WEIGHTS
         SHOW_WEIGHTS = not SHOW_WEIGHTS
         for edge in self.edgesG:
-            edge.eraseE()
+            edge.moveE()
 
     def toggle_weight(self):
         global CUSTOM_WEIGHTS
@@ -661,7 +686,7 @@ class DGraph(Graph):
         edges = PriorityQueue()
         for node in start.connectedN:
             edge = self.get_edge((start, node))
-            edges.put((edge.get_weightE(), priority, edge))
+            edges.put((edge.get_costE(), priority, edge))
             priority = priority + 1
         dist = {start: 0}
         labeling = {}
@@ -674,7 +699,7 @@ class DGraph(Graph):
             for node in entering.connectedN:
                 if node not in dist:
                     edge = self.get_edge((entering, node))
-                    edges.put((cost + edge.get_weightE(), priority, edge))
+                    edges.put((cost + edge.get_costE(), priority, edge))
                     priority = priority + 1
             dist[entering] = cost
             labeling[entering] = leaving
@@ -1096,7 +1121,7 @@ def main():
         Button1(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Remove'),
         Button1(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, 'Connect'),
         Button4(WIDTH+1, 3*WIDTH//6, SIDE_BAR, WIDTH//6, 'Custom weights', 'Default weights', lambda: graph.toggle_weight()),
-        Button4(WIDTH+1, 4*WIDTH//6, SIDE_BAR, WIDTH//6, 'Hide', 'Show', lambda: graph.toggle_show()),
+        Button4(WIDTH+1, 4*WIDTH//6, SIDE_BAR, WIDTH//6, 'Show costs', 'Show weights', lambda: graph.toggle_show()),
         Button3(WIDTH+1, 5*WIDTH//6, SIDE_BAR, WIDTH//6, 'View', 'Return')
     ]
     buttons2 = [
@@ -1244,7 +1269,7 @@ def main():
                             node_to_move = current_node
                         elif buttons1[3].is_selected():
                             if bool(current_edge):
-                                running = not current_edge.input_weightE(graph)
+                                running = not current_edge.input_valueE(graph)
         graph.drawG()
         for button in buttons:
             button.unhover()
