@@ -675,7 +675,7 @@ class DGraph(Graph):
         current_node.unhover()
         self.drawG()
 
-    def shortest_path(self):
+    def shortest_path(self, return_path):
         label = ['start', 'end']
         exit = self.select(label)
         if exit:
@@ -703,10 +703,15 @@ class DGraph(Graph):
                     priority = priority + 1
             dist[entering] = cost
             labeling[entering] = leaving
+        path = []
         if end in dist:
             while end != start:
-                self.get_edge((labeling[end], end)).active()
+                path.append(self.get_edge((labeling[end], end)))
                 end = labeling[end]
+        if return_path:
+            return path
+        for edge in path:
+            edge.active()
 
     def max_flow(self):
         label = ['s', 't']
@@ -763,6 +768,36 @@ class DGraph(Graph):
                 if type(path) == list:
                     return path
         return cut
+
+    def SSPA(self, demand): #Successive Shortest Path Algorithm
+        original_costs = {}
+        flow = {} #{(leaving node, entering node): (forward flow, backward flow, capacity of arc)}
+        for edge in self.edgesG:
+            original_costs[edge] = edge.get_costE()
+            arc = edge.connectingE
+            flow[arc] = (0, 0, edge.get_weightE())
+            arc = (arc[1], arc[0])
+            if not arc in flow:
+                flow[arc] = (0, 0, 0)
+        supplied = 0
+        while supplied < demand:
+            path = self.shortest_path(True)
+            path_flow = float('inf')
+            for edge in path:
+                arc = edge.connectingE
+                spare_capacity = flow[arc][2] + flow[arc][1] - flow[arc][0]
+                path_flow = min(path_flow, spare_capacity)
+                edge.costE = float('inf')
+            path_flow = min(supplied - demand, path_flow)
+            for edge in path:
+                arc = edge.connectingE
+                f_flow, b_flow, capacity = flow[arc]
+                f_flow, b_flow = max(f_flow + path_flow - b_flow, 0), max(b_flow - path_flow, 0)
+                flow[arc] = (f_flow, b_flow, capacity)
+                arc = (arc[1], arc[0])
+                flow[arc] = (b_flow, f_flow, flow[arc][2])
+        for edge in self.edgeG:
+            edge.costE = original_costs[edge]
 
     def reset_labels(self):
         self.labeling.clear()
@@ -1133,7 +1168,7 @@ def main():
         buttons1[5]
     ]
     buttons3 = [
-        Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Shortest Path', lambda: graph.shortest_path()),
+        Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Shortest Path', lambda: graph.shortest_path(False)),
         Button2(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Max Flow', lambda: graph.max_flow()),
         Button2(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, '3', lambda *args: None),
         buttons1[3],
