@@ -675,13 +675,16 @@ class DGraph(Graph):
         current_node.unhover()
         self.drawG()
 
-    def shortest_path(self, return_path):
-        label = ['start', 'end']
-        exit = self.select(label)
-        if exit:
-            return exit-1
-        start = list(self.labeling.keys())[list(self.labeling.values()).index(label[0])]
-        end = list(self.labeling.keys())[list(self.labeling.values()).index(label[1])]
+    def shortest_path(self, nodes: Tuple(Node, Node)):
+        if bool(nodes):
+            start, end = nodes
+        else:
+            label = ['start', 'end']
+            exit = self.select(label)
+            if exit:
+                return exit-1
+            start = list(self.labeling.keys())[list(self.labeling.values()).index(label[0])]
+            end = list(self.labeling.keys())[list(self.labeling.values()).index(label[1])]
         priority = 0
         edges = PriorityQueue()
         for node in start.connectedN:
@@ -708,7 +711,7 @@ class DGraph(Graph):
             while end != start:
                 path.append(self.get_edge((labeling[end], end)))
                 end = labeling[end]
-        if return_path:
+        if bool(nodes):
             return path
         for edge in path:
             edge.active()
@@ -769,7 +772,44 @@ class DGraph(Graph):
                     return path
         return cut
 
-    def SSPA(self, demand): #Successive Shortest Path Algorithm
+    def min_cost_flow(self):
+        label = ['s', 't']
+        exit = self.select(label)
+        if exit:
+            return exit-1
+        source = list(self.labeling.keys())[list(self.labeling.values()).index(label[0])]
+        sink = list(self.labeling.keys())[list(self.labeling.values()).index(label[1])]
+        value = '0'
+        text = font.render(value, True, BLACK)
+        text_rect = text.get_rect(center=(WIDTH-60, WIDTH-20))
+        run = True
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return True
+                pos = pygame.mouse.get_pos()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        run = False
+                    elif event.key == pygame.K_BACKSPACE:
+                        value = value[:-1]
+                        if not bool(value):
+                            value = '0'
+                    else:
+                        if event.unicode.isnumeric():
+                            if int(value):
+                                value += event.unicode
+                            else:
+                                value = event.unicode
+            pygame.draw.rect(WIN, WHITE, text_rect)
+            text = font.render(value, True, BLACK)
+            text_rect = text.get_rect(center=(WIDTH-60, WIDTH-20))
+            WIN.blit(text, text_rect)
+            self.drawG()
+        pygame.draw.rect(WIN, WHITE, text_rect)
+        self.SSPA(source, sink, int(value))
+
+    def SSPA(self, source, sink, demand): #Successive Shortest Path Algorithm
         original_costs = {}
         flow = {} #{(leaving node, entering node): (forward flow, backward flow, capacity of arc)}
         for edge in self.edgesG:
@@ -780,15 +820,18 @@ class DGraph(Graph):
             if not arc in flow:
                 flow[arc] = (0, 0, 0)
         supplied = 0
-        while supplied < demand:
-            path = self.shortest_path(True)
+        run = True
+        while supplied < demand and run:
+            path = self.shortest_path((source, sink))
             path_flow = float('inf')
             for edge in path:
                 arc = edge.connectingE
                 spare_capacity = flow[arc][2] + flow[arc][1] - flow[arc][0]
                 path_flow = min(path_flow, spare_capacity)
-                edge.costE = float('inf')
-            path_flow = min(supplied - demand, path_flow)
+            path_flow = min(demand - supplied, path_flow)
+            for edge in path:
+                if edge.get_costE() == path_flow:
+                    edge.costE = float('inf')
             for edge in path:
                 arc = edge.connectingE
                 f_flow, b_flow, capacity = flow[arc]
@@ -796,7 +839,10 @@ class DGraph(Graph):
                 flow[arc] = (f_flow, b_flow, capacity)
                 arc = (arc[1], arc[0])
                 flow[arc] = (b_flow, f_flow, flow[arc][2])
-        for edge in self.edgeG:
+            supplied = supplied + path_flow
+            if path_flow == 0:
+                run = False
+        for edge in self.edgesG:
             edge.costE = original_costs[edge]
 
     def reset_labels(self):
