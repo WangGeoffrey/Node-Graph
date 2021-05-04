@@ -4,6 +4,7 @@ from queue import PriorityQueue
 from typing import Dict, List, Set, Tuple
 import pygame
 import math
+import sys
 
 pygame.init()
 WIDTH = 600
@@ -813,15 +814,14 @@ class DGraph(Graph):
         original_costs = {}
         flow = {} #{(leaving node, entering node): (forward flow, backward flow, capacity of arc)}
         for edge in self.edgesG:
-            original_costs[edge] = edge.get_costE()
+            original_costs[edge] = str(edge.get_costE())
             arc = edge.connectingE
             flow[arc] = (0, 0, edge.get_weightE())
             arc = (arc[1], arc[0])
             if not arc in flow:
                 flow[arc] = (0, 0, 0)
         supplied = 0
-        run = True
-        while supplied < demand and run:
+        while supplied < demand:
             path = self.shortest_path((source, sink))
             path_flow = float('inf')
             for edge in path:
@@ -830,8 +830,10 @@ class DGraph(Graph):
                 path_flow = min(path_flow, spare_capacity)
             path_flow = min(demand - supplied, path_flow)
             for edge in path:
-                if edge.get_costE() == path_flow:
-                    edge.costE = float('inf')
+                arc = edge.connectingE
+                spare_capacity = flow[arc][2] + flow[arc][1] - flow[arc][0]
+                if spare_capacity == path_flow:
+                    edge.costE = str(sys.maxsize)
             for edge in path:
                 arc = edge.connectingE
                 f_flow, b_flow, capacity = flow[arc]
@@ -840,10 +842,17 @@ class DGraph(Graph):
                 arc = (arc[1], arc[0])
                 flow[arc] = (b_flow, f_flow, flow[arc][2])
             supplied = supplied + path_flow
-            if path_flow == 0:
-                run = False
+            if not path_flow:
+                break
         for edge in self.edgesG:
             edge.costE = original_costs[edge]
+        for arc in flow:
+            edge = self.get_edge(arc)
+            if bool(edge):
+                if edge.costE == str(sys.maxsize):
+                    continue
+                edge.eraseE()
+                edge.set_custom(str(flow[arc][0])+'/'+str(flow[arc][2]))
 
     def reset_labels(self):
         self.labeling.clear()
@@ -1201,7 +1210,7 @@ def main():
         Button1(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Add'),
         Button1(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Remove'),
         Button1(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, 'Connect'),
-        Button4(WIDTH+1, 3*WIDTH//6, SIDE_BAR, WIDTH//6, 'Custom weights', 'Default weights', lambda: graph.toggle_weight()),
+        Button4(WIDTH+1, 3*WIDTH//6, SIDE_BAR, WIDTH//6, 'Custom', 'Default', lambda: graph.toggle_weight()),
         Button4(WIDTH+1, 4*WIDTH//6, SIDE_BAR, WIDTH//6, 'Show costs', 'Show weights', lambda: graph.toggle_show()),
         Button3(WIDTH+1, 5*WIDTH//6, SIDE_BAR, WIDTH//6, 'View', 'Return')
     ]
@@ -1216,7 +1225,7 @@ def main():
     buttons3 = [
         Button2(WIDTH+1, 0, SIDE_BAR, WIDTH//6, 'Shortest Path', lambda: graph.shortest_path(False)),
         Button2(WIDTH+1, WIDTH//6, SIDE_BAR, WIDTH//6, 'Max Flow', lambda: graph.max_flow()),
-        Button2(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, '3', lambda *args: None),
+        Button2(WIDTH+1, 2*WIDTH//6, SIDE_BAR, WIDTH//6, 'MCF', lambda: graph.min_cost_flow()),
         buttons1[3],
         buttons1[4],
         buttons1[5]
