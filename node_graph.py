@@ -160,6 +160,14 @@ class Edge(ABC):
         self._edge = edge
 
     @property
+    def default_valueE(self) -> str:
+        return self._default_valueE
+
+    @default_valueE.setter
+    def default_valueE(self, distance: str) -> None:
+        self._default_valueE = distance
+
+    @property
     def weightE(self) -> str:
         return self._weightE
 
@@ -219,13 +227,19 @@ class Edge(ABC):
         if CUSTOM_WEIGHTS:
             return int(self.weightE)
         else:
-            return self.distance()
+            return int(self.default_valueE)
 
     def get_costE(self) -> int:
         if CUSTOM_WEIGHTS:
             return int(self.costE)
         else:
-            return self.distance()
+            return int(self.default_valueE)
+
+    def set_costE(self, cost):
+        if CUSTOM_WEIGHTS:
+            self.costE = cost
+        else:
+            self.default_valueE = cost
 
     @property
     def textE(self) -> Surface:
@@ -250,7 +264,8 @@ class Edge(ABC):
             else:
                 self.textE = font.render(self.costE, True, BLACK)
         else:
-            self.textE = font.render(str(self.distance()), True, BLACK)
+            self.default_valueE = str(self.distance())
+            self.textE = font.render(self.default_valueE, True, BLACK)
         x1, y1 = self.edge[0]
         x2, y2 = self.edge[1]
         self.text_rectE = self.textE.get_rect(center=(x1+self.text_pos*(x2-x1), y1+self.text_pos*(y2-y1)))
@@ -279,6 +294,7 @@ class UEdge(Edge):
         self.edge = (node1.posN, node2.posN)
         self.costE = '1'
         self.weightE = '1'
+        self.default_valueE = str(self.distance())
         self.text_pos = 1/2
         self.update_textE()
 
@@ -316,6 +332,7 @@ class DEdge(Edge):
         self.weightE = '1'
         self.connectingE = (leaving_node, entering_node)
         self.edge = (leaving_node.posN, entering_node.posN)
+        self.default_valueE = str(self.distance())
         self.parallel = None #Parallel edge (if one exists)
         self.text_pos = 1/2
         self.update_textE()
@@ -833,7 +850,7 @@ class DGraph(Graph):
                 arc = edge.connectingE
                 spare_capacity = flow[arc][2] + flow[arc][1] - flow[arc][0]
                 if spare_capacity == path_flow:
-                    edge.costE = str(sys.maxsize)
+                    edge.set_costE(str(sys.maxsize))
             for edge in path:
                 arc = edge.connectingE
                 f_flow, b_flow, capacity = flow[arc]
@@ -845,12 +862,10 @@ class DGraph(Graph):
             if not path_flow:
                 break
         for edge in self.edgesG:
-            edge.costE = original_costs[edge]
+            edge.set_costE(original_costs[edge])
         for arc in flow:
             edge = self.get_edge(arc)
             if bool(edge):
-                if edge.costE == str(sys.maxsize):
-                    continue
                 edge.eraseE()
                 edge.set_custom(str(flow[arc][0])+'/'+str(flow[arc][2]))
 
