@@ -337,6 +337,7 @@ class DEdge(Edge):
         self.default_valueE = str(self.distance())
         self.parallel = None #Parallel edge (if one exists)
         self.text_pos = 1/2
+        self.custom_textE = None
         self.update_textE()
 
     @property
@@ -358,6 +359,20 @@ class DEdge(Edge):
             self.text_pos = 4/7
         else:
             self.text_pos = 1/2
+
+    @property
+    def custom_textE(self) -> Surface:
+        return self._custom_textE
+
+    @custom_textE.setter
+    def custom_textE(self, text: Surface):
+        self._custom_textE = text
+
+    def set_custom(self, text):
+        self.custom_textE = font.render(text, True, BLACK)
+        x1, y1 = self.edge[0]
+        x2, y2 = self.edge[1]
+        self.text_rectE = self.custom_textE.get_rect(center=(x1+self.text_pos*(x2-x1), y1+self.text_pos*(y2-y1)))
 
     def head_pos(self):
         x1, y1 = self.edge[0]
@@ -390,6 +405,10 @@ class DEdge(Edge):
             new_x, new_y = int((x/abs(x))*(new_y*ratio)), int(-(y/abs(y))*new_y)
         return (x1 + new_x, y1 + new_y), (x2 + new_x, y2 + new_y)
 
+    def update_textE(self):
+        if not bool(self.custom_textE):
+            super(DEdge, self).update_textE()
+
     def moveE(self):
         self.eraseE()
         if not bool(self.parallel):
@@ -398,16 +417,12 @@ class DEdge(Edge):
             self.edge = self.edge_pos()
         self.update_textE()
 
-    def set_custom(self, text):
-        self.textE = font.render(text, True, BLACK)
-        x1, y1 = self.edge[0]
-        x2, y2 = self.edge[1]
-        self.text_rectE = self.textE.get_rect(center=(x1+self.text_pos*(x2-x1), y1+self.text_pos*(y2-y1)))
-
     def drawE(self):
         pygame.draw.line(WIN, self.colorE, self.edge[0], self.edge[1])
         pygame.draw.circle(WIN, self.colorE, self.head_pos(), 5)
-        if SHOW_VALUE:
+        if bool(self.custom_textE):
+            WIN.blit(self.custom_textE, self.text_rectE)
+        else:
             WIN.blit(self.textE, self.text_rectE)
 
     def eraseE(self):
@@ -889,6 +904,7 @@ class DGraph(Graph):
         for node in self.nodesG:
             node.active = False
         for edge in self.edgesG:
+            edge.custom_textE = None
             edge.moveE()
 
     def drawG(self):
