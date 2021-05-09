@@ -369,7 +369,7 @@ class DEdge(Edge):
         self._custom_textE = text
 
     def set_custom(self, text):
-        self.custom_textE = font.render(text, True, BLACK)
+        self.textE = self.custom_textE = font.render(text, True, BLACK)
         x1, y1 = self.edge[0]
         x2, y2 = self.edge[1]
         self.text_rectE = self.custom_textE.get_rect(center=(x1+self.text_pos*(x2-x1), y1+self.text_pos*(y2-y1)))
@@ -406,7 +406,15 @@ class DEdge(Edge):
         return (x1 + new_x, y1 + new_y), (x2 + new_x, y2 + new_y)
 
     def update_textE(self):
-        if not bool(self.custom_textE):
+        if bool(self.custom_textE):
+            self.textE = self.custom_textE
+            if CUSTOM_WEIGHTS:
+                if not SHOW_WEIGHTS:
+                    self.textE = font.render(self.costE, True, BLACK)
+            x1, y1 = self.edge[0]
+            x2, y2 = self.edge[1]
+            self.text_rectE = self.textE.get_rect(center=(x1+self.text_pos*(x2-x1), y1+self.text_pos*(y2-y1)))
+        else:
             super(DEdge, self).update_textE()
 
     def moveE(self):
@@ -420,10 +428,7 @@ class DEdge(Edge):
     def drawE(self):
         pygame.draw.line(WIN, self.colorE, self.edge[0], self.edge[1])
         pygame.draw.circle(WIN, self.colorE, self.head_pos(), 5)
-        if bool(self.custom_textE):
-            WIN.blit(self.custom_textE, self.text_rectE)
-        else:
-            WIN.blit(self.textE, self.text_rectE)
+        WIN.blit(self.textE, self.text_rectE)
 
     def eraseE(self):
         pygame.draw.line(WIN, WHITE, self.edge[0], self.edge[1])
