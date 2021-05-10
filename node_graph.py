@@ -485,6 +485,7 @@ class Graph(ABC):
         CUSTOM_WEIGHTS = not CUSTOM_WEIGHTS
         for edge in self.edgesG:
             edge.moveE()
+        self.reset()
 
     def toggle_show(self):
         global SHOW_VALUE
@@ -772,7 +773,9 @@ class DGraph(Graph):
         source = list(self.labeling.keys())[list(self.labeling.values()).index(label[0])]
         sink = list(self.labeling.keys())[list(self.labeling.values()).index(label[1])]
         while len(source.connectedN) != len(source.edgesN) or bool(sink.connectedN):
-            self.select(label)
+            exit = self.select(label)
+            if exit:
+                return exit-1
             source = list(self.labeling.keys())[list(self.labeling.values()).index(label[0])]
             sink = list(self.labeling.keys())[list(self.labeling.values()).index(label[1])]
         flow = {} #{(leaving node, entering node): (forward flow, backward flow, capacity of arc)}
