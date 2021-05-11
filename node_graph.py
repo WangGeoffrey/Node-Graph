@@ -108,11 +108,6 @@ class Node:
     def eraseN(self):
         pygame.draw.circle(WIN, WHITE, self.posN, SIZE)
 
-    def deleteN(self):
-        self.eraseN()
-        for edge in self._edgesN:
-            edge.deleteE()
-
 class DNode(Node):
 
     def attach_edge(self, edge: Edge):
@@ -227,14 +222,12 @@ class Edge(ABC):
     def get_weightE(self) -> int:
         if CUSTOM_WEIGHTS:
             return int(self.weightE)
-        else:
-            return int(self.default_valueE)
+        return int(self.default_valueE)
 
     def get_costE(self) -> int:
         if CUSTOM_WEIGHTS:
             return int(self.costE)
-        else:
-            return int(self.default_valueE)
+        return int(self.default_valueE)
 
     def set_costE(self, cost):
         if CUSTOM_WEIGHTS:
@@ -291,11 +284,11 @@ class UEdge(Edge):
 
     def __init__(self, node1: Node, node2: Node):
         self.colorE = BLACK
-        self.connectingE = {node1, node2}
         self.edge = (node1.posN, node2.posN)
-        self.costE = '1'
-        self.weightE = '1'
+        self.connectingE = {node1, node2}
         self.default_valueE = str(self.distance())
+        self.weightE = '1'
+        self.costE = '1'
         self.text_pos = 1/2
         self.update_textE()
 
@@ -330,14 +323,14 @@ class DEdge(Edge):
 
     def __init__(self, leaving_node: Node, entering_node: Node):
         self.colorE = BLACK
-        self.costE = '1'
-        self.weightE = '1'
-        self.connectingE = (leaving_node, entering_node)
         self.edge = (leaving_node.posN, entering_node.posN)
+        self.connectingE = (leaving_node, entering_node)
         self.default_valueE = str(self.distance())
-        self.parallel = None #Parallel edge (if one exists)
-        self.text_pos = 1/2
+        self.weightE = '1'
+        self.costE = '1'
         self.custom_textE = None
+        self.text_pos = 1/2
+        self.parallel = None #Parallel edge (if one exists)
         self.update_textE()
 
     @property
@@ -506,7 +499,7 @@ class Graph(ABC):
                 self.remove_edge(self._edgesG[col-offset])
                 offset += 1
         self._nodesG.remove(node)
-        node.deleteN()
+        node.eraseN()
 
     @abstractmethod
     def add_edge(self, edge: Edge):
